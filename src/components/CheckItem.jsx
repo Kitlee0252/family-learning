@@ -12,38 +12,39 @@ export default function CheckItem({
   useEffect(() => {
     if (!isExpanded || !textareaRef.current) return
     const el = textareaRef.current
+    const timers = []
+    const addTimer = (fn, ms) => { timers.push(setTimeout(fn, ms)) }
+    const scrollTo = () => el.scrollIntoView({ behavior: 'smooth', block: 'center' })
 
-    // Wait for expand animation (250ms) to finish before focusing
-    const focusTimer = setTimeout(() => {
+    // Wait for CSS expand animation to finish before focusing
+    addTimer(() => {
       el.focus({ preventScroll: true })
 
-      // Use visualViewport resize to detect keyboard settled, then scroll
       const vv = window.visualViewport
       if (vv) {
-        let scrollTimer = null
+        // Debounce viewport resize: keyboard fires multiple resize events during animation.
+        // Keep re-debouncing until resize stops for 150ms, then scroll.
+        let debounce = null
         const onResize = () => {
-          clearTimeout(scrollTimer)
-          // Wait for viewport to stabilize (keyboard animation done)
-          scrollTimer = setTimeout(() => {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            vv.removeEventListener('resize', onResize)
-          }, 120)
+          clearTimeout(debounce)
+          debounce = setTimeout(scrollTo, 150)
         }
         vv.addEventListener('resize', onResize)
-        // Fallback: if keyboard is already open (switching tasks), viewport won't resize
-        setTimeout(() => {
+
+        // Final cleanup: after 600ms remove listener and do a guaranteed scroll.
+        // Covers both cases: keyboard newly opening (~400ms animation)
+        // and keyboard already open (no resize events at all).
+        addTimer(() => {
           vv.removeEventListener('resize', onResize)
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }, 400)
+          clearTimeout(debounce)
+          scrollTo()
+        }, 600)
       } else {
-        // Fallback for browsers without visualViewport
-        setTimeout(() => {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }, 300)
+        addTimer(scrollTo, 400)
       }
     }, 260)
 
-    return () => clearTimeout(focusTimer)
+    return () => timers.forEach(clearTimeout)
   }, [isExpanded])
 
   const placeholder = isNote
