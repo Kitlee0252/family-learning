@@ -1,15 +1,13 @@
 import { useRef, useCallback } from 'react'
-import { TASKS } from '../utils/constants'
 import { useSwipe } from '../hooks/useSwipe'
 import { useToast } from './Toast'
 import DayNav from './DayNav'
 import ProgressRing from './ProgressRing'
 import CheckItem from './CheckItem'
-import NoteFields from './NoteFields'
 import styles from './PersonPage.module.css'
 
 export default function PersonPage({
-  member, currentDay, personData, expandedTask,
+  member, currentDay, personData, expandedTask, tasks,
   onChangeDay, onSetExpandedTask, onToggleTask,
   onUpdateNote, onUpdateTaskContent,
 }) {
@@ -21,7 +19,7 @@ export default function PersonPage({
   useSwipe(wrapRef, { onSwipeLeft, onSwipeRight })
 
   const pd = personData
-  const doneCount = TASKS.reduce((c, t) => c + (pd.tasks[t.key] ? 1 : 0), 0)
+  const doneCount = tasks.reduce((c, t) => c + (pd.tasks[t.key] ? 1 : 0), 0)
 
   return (
     <div ref={wrapRef}>
@@ -32,12 +30,12 @@ export default function PersonPage({
       />
 
       <div className={styles.card}>
-        <ProgressRing done={doneCount} total={TASKS.length} memberName={member.name} />
+        <ProgressRing done={doneCount} total={tasks.length} memberName={member.name} />
 
         <div className={styles.checkList}>
-          {TASKS.map(task => {
+          {tasks.map(task => {
             const isDone = !!pd.tasks[task.key]
-            const contentKey = task.key === 'read' ? 'readContent' : 'noteContent'
+            const contentKey = task.key + 'Content'
             return (
               <CheckItem
                 key={task.key}
@@ -49,9 +47,9 @@ export default function PersonPage({
                 onConfirm={() => {
                   onToggleTask(task.key, true)
                   onSetExpandedTask(null)
-                  const newDone = TASKS.reduce((c, t) =>
+                  const newDone = tasks.reduce((c, t) =>
                     c + ((t.key === task.key ? true : pd.tasks[t.key]) ? 1 : 0), 0)
-                  if (newDone === TASKS.length) showToast('🎉 全部完成！太棒了')
+                  if (newDone === tasks.length) showToast('🎉 全部完成！太棒了')
                 }}
                 onUndo={() => {
                   onToggleTask(task.key, false)
@@ -62,14 +60,6 @@ export default function PersonPage({
             )
           })}
         </div>
-      </div>
-
-      <div className={styles.card}>
-        <div className={styles.cardTitle}>📝 今日笔记</div>
-        <NoteFields
-          notes={pd.notes}
-          onNoteChange={onUpdateNote}
-        />
       </div>
     </div>
   )

@@ -1,31 +1,25 @@
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect } from 'react'
 import styles from './CheckItem.module.css'
-
-function autoGrow(el) {
-  if (!el) return
-  el.style.height = 'auto'
-  el.style.height = Math.max(44, el.scrollHeight) + 'px'
-}
 
 export default function CheckItem({
   task, isDone, isExpanded, content,
   onToggleExpand, onConfirm, onUndo, onContentChange,
 }) {
-  const needsText = task.key === 'read' || task.key === 'note'
+  const isNote = task.type === 'note'
+  const hasTextArea = task.type === 'read' || task.type === 'note' || task.type === 'custom'
   const textareaRef = useRef(null)
 
   useEffect(() => {
     if (isExpanded && textareaRef.current) {
-      autoGrow(textareaRef.current)
+      textareaRef.current.focus()
     }
   }, [isExpanded])
 
-  const handleContentChange = useCallback((e) => {
-    autoGrow(e.target)
-    onContentChange?.(e.target.value)
-  }, [onContentChange])
-
-  const placeholder = task.key === 'read' ? '今天读了什么...' : '简要记录笔记内容...'
+  const placeholder = isNote
+    ? '自由书写今天的所见、所学、所得…'
+    : task.type === 'read'
+      ? '今天读了什么...'
+      : '记录一下...'
 
   return (
     <div>
@@ -40,16 +34,26 @@ export default function CheckItem({
         <span className={styles.arrow}>▸</span>
       </div>
 
-      <div className={`${styles.detail} ${isExpanded ? styles.open : ''}`}>
+      <div className={`${styles.detail} ${isExpanded ? styles.open : ''} ${isNote && isExpanded ? styles.openNote : ''}`}>
         <div className={styles.detailInner}>
-          {needsText && (
+          {isNote && (
+            <div className={styles.noteHeader}>
+              <span className={styles.noteTitle}>📝 今日笔记</span>
+              <div className={styles.noteTags}>
+                <span className={`${styles.noteTag} ${styles.tagSee}`}>看到了</span>
+                <span className={`${styles.noteTag} ${styles.tagKnow}`}>知道了</span>
+                <span className={`${styles.noteTag} ${styles.tagDo}`}>做到了</span>
+              </div>
+            </div>
+          )}
+          {hasTextArea && (
             <textarea
               ref={textareaRef}
-              className={styles.textarea}
+              className={`${styles.textarea} ${isNote ? styles.textareaNote : ''}`}
               placeholder={placeholder}
               value={content || ''}
               onClick={(e) => e.stopPropagation()}
-              onChange={handleContentChange}
+              onChange={(e) => onContentChange?.(e.target.value)}
             />
           )}
           <div className={styles.actions}>

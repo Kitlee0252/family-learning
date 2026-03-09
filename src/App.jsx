@@ -11,10 +11,11 @@ import './App.css'
 function AppContent() {
   const store = useStore()
   const {
-    members, data, currentTab, currentDay, weekOffset, expandedTask,
+    members, data, tasks, currentTab, currentDay, weekOffset, expandedTask,
     getPersonData, toggleTask, updateNote, updateTaskContent,
     changeDay, changeWeek, switchTab, setExpandedTask,
     addMember, removeMember, updateMemberName,
+    addTask, removeTask, updateTask,
     exportData, importData,
   } = store
 
@@ -53,6 +54,7 @@ function AppContent() {
           currentDay={currentDay}
           personData={personData}
           expandedTask={expandedTask}
+          tasks={tasks}
           onChangeDay={changeDay}
           onSetExpandedTask={setExpandedTask}
           onToggleTask={handleToggleTask}
@@ -65,6 +67,7 @@ function AppContent() {
         <RankPage
           members={members}
           data={data}
+          tasks={tasks}
           weekOffset={weekOffset}
           onChangeWeek={changeWeek}
         />
@@ -73,9 +76,13 @@ function AppContent() {
       {isSettings && (
         <SettingsPage
           members={members}
+          tasks={tasks}
           onAddMember={addMember}
           onRemoveMember={removeMember}
           onUpdateMemberName={updateMemberName}
+          onAddTask={addTask}
+          onRemoveTask={removeTask}
+          onUpdateTask={updateTask}
           onExport={exportData}
           onImport={importData}
         />

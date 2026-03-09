@@ -83,6 +83,110 @@
   color: var(--accent);
 }
 
+/* Task rows */
+.taskRowWrap {
+  position: relative;
+}
+
+.taskRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.taskEmojiBtn {
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.taskEmojiBtn:active {
+  transform: scale(0.92);
+}
+
+.taskEmojiBtn:hover {
+  border-color: var(--accent);
+  background: var(--card);
+}
+
+/* Emoji picker */
+.emojiPickerBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+}
+
+.emojiPicker {
+  position: relative;
+  z-index: 100;
+  margin-top: 8px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  animation: pickerIn 0.18s ease-out;
+}
+
+@keyframes pickerIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.emojiGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.emojiOption {
+  width: 100%;
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
+}
+
+.emojiOption:hover {
+  background: var(--bg);
+  transform: scale(1.15);
+}
+
+.emojiOption:active {
+  transform: scale(0.9);
+}
+
+.emojiSelected {
+  background: var(--bg);
+  box-shadow: 0 0 0 2px var(--accent);
+  border-radius: 10px;
+}
+
+/* Data management */
 .dataActions {
   display: flex;
   gap: 10px;

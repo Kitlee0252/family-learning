@@ -1,11 +1,12 @@
 export const STORAGE_KEY_MEMBERS = 'flt_members'
 export const STORAGE_KEY_DATA = 'flt_data'
+export const STORAGE_KEY_TASKS = 'flt_tasks'
 export const STORAGE_KEY_MIGRATED = 'flt_migrated_v2'
 
-export const TASKS = [
-  { key: 'note', label: '记笔记', emoji: '✏️', type: 'note' },
-  { key: 'english', label: '学英语（多邻国）', emoji: '🦉', type: 'english' },
-  { key: 'read', label: '做阅读', emoji: '📖', type: 'read' },
+export const DEFAULT_TASKS = [
+  { id: 'english', key: 'english', label: '学英语（多邻国）', emoji: '🦉', type: 'english' },
+  { id: 'read', key: 'read', label: '做阅读', emoji: '📖', type: 'read' },
+  { id: 'note', key: 'note', label: '记笔记', emoji: '✏️', type: 'note' },
 ]
 
 export const NOTE_FIELDS = [
@@ -24,6 +25,8 @@ export const MSGS = [
 export const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
 export const MEMBER_EMOJIS = ['🧑', '👩', '👦', '👧', '🧒', '👴', '👵']
+
+export const TASK_EMOJIS = ['✏️', '🦉', '📖', '🎵', '🏃', '🧮', '🎨', '🔬', '🎯', '💻', '🌍', '🧠', '📝', '🎹', '🏊', '⚽', '🧩', '📐', '🔭', '🎤']
 
 export const DEFAULT_MEMBERS = [
   { id: 'm_1', name: '爸爸', emoji: '🧑' },

@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { STORAGE_KEY_MEMBERS, STORAGE_KEY_DATA, DEFAULT_MEMBERS, MEMBER_EMOJIS } from '../utils/constants'
+import { STORAGE_KEY_MEMBERS, STORAGE_KEY_DATA, STORAGE_KEY_TASKS, DEFAULT_MEMBERS, DEFAULT_TASKS, MEMBER_EMOJIS, TASK_EMOJIS } from '../utils/constants'
 import { dataKey } from '../utils/date'
 import { isFutureDay } from '../utils/date'
 
@@ -16,6 +16,7 @@ function loadJSON(key, fallback) {
 export function useStore() {
   const [members, setMembers] = useState(() => loadJSON(STORAGE_KEY_MEMBERS, DEFAULT_MEMBERS))
   const [data, setData] = useState(() => loadJSON(STORAGE_KEY_DATA, {}))
+  const [tasks, setTasks] = useState(() => loadJSON(STORAGE_KEY_TASKS, DEFAULT_TASKS))
   const [currentTab, setCurrentTab] = useState(0)
   const [currentDay, setCurrentDay] = useState(() => new Date())
   const [weekOffset, setWeekOffset] = useState(0)
@@ -25,8 +26,10 @@ export function useStore() {
   const persistTimer = useRef(null)
   const membersRef = useRef(members)
   const dataRef = useRef(data)
+  const tasksRef = useRef(tasks)
   membersRef.current = members
   dataRef.current = data
+  tasksRef.current = tasks
 
   const persist = useCallback(() => {
     clearTimeout(persistTimer.current)
@@ -34,6 +37,7 @@ export function useStore() {
       try {
         localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(membersRef.current))
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataRef.current))
+        localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasksRef.current))
       } catch (e) {
         console.warn('Save error:', e)
       }
@@ -41,7 +45,7 @@ export function useStore() {
   }, [])
 
   // Persist on changes
-  useEffect(() => { persist() }, [members, data, persist])
+  useEffect(() => { persist() }, [members, data, tasks, persist])
 
   const getPersonData = useCallback((memberId, date) => {
     const key = dataKey(memberId, date)
@@ -57,6 +61,16 @@ export function useStore() {
     }
     if (entry.readContent === undefined) entry.readContent = ''
     if (entry.noteContent === undefined) entry.noteContent = ''
+    // Migrate structured notes to noteContent
+    if (!entry.noteContent && entry.notes) {
+      const parts = []
+      if (entry.notes.see) parts.push(`看到了：${entry.notes.see}`)
+      if (entry.notes.know) parts.push(`知道了：${entry.notes.know}`)
+      if (entry.notes.do) parts.push(`做到了：${entry.notes.do}`)
+      if (parts.length > 0) {
+        entry.noteContent = parts.join('\n')
+      }
+    }
     return entry
   }, [data])
 
@@ -149,9 +163,30 @@ export function useStore() {
     })
   }, [])
 
+  const addTask = useCallback(() => {
+    setTasks(prev => {
+      const nextKey = 'task_' + (Date.now() % 100000)
+      const emojiIdx = prev.length % TASK_EMOJIS.length
+      return [...prev, { id: nextKey, key: nextKey, label: '新项目', emoji: TASK_EMOJIS[emojiIdx], type: 'custom' }]
+    })
+  }, [])
+
+  const removeTask = useCallback((taskKey) => {
+    setTasks(prev => {
+      if (prev.length <= 1) return prev
+      return prev.filter(t => t.key !== taskKey)
+    })
+  }, [])
+
+  const updateTask = useCallback((taskKey, field, value) => {
+    setTasks(prev => prev.map(t =>
+      t.key === taskKey ? { ...t, [field]: value } : t
+    ))
+  }, [])
+
   const exportData = useCallback(() => {
     const blob = new Blob(
-      [JSON.stringify({ version: 2, members: membersRef.current, data: dataRef.current }, null, 2)],
+      [JSON.stringify({ version: 2, members: membersRef.current, data: dataRef.current, tasks: tasksRef.current }, null, 2)],
       { type: 'application/json' }
     )
     const a = document.createElement('a')
@@ -170,6 +205,7 @@ export function useStore() {
     if (jsonObj.members && jsonObj.data) {
       setMembers(jsonObj.members)
       setData(jsonObj.data)
+      if (jsonObj.tasks) setTasks(jsonObj.tasks)
       setCurrentTab(0)
       return true
     }
@@ -177,10 +213,11 @@ export function useStore() {
   }, [])
 
   return {
-    members, data, currentTab, currentDay, weekOffset, expandedTask,
+    members, data, tasks, currentTab, currentDay, weekOffset, expandedTask,
     getPersonData, toggleTask, updateNote, updateTaskContent,
     changeDay, changeWeek, switchTab, setExpandedTask,
     addMember, removeMember, updateMemberName,
+    addTask, removeTask, updateTask,
     exportData, importData,
   }
 }

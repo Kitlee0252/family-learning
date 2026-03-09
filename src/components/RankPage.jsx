@@ -1,8 +1,7 @@
-import { TASKS } from '../utils/constants'
 import { dataKey, getWeekDates } from '../utils/date'
 import styles from './RankPage.module.css'
 
-export default function RankPage({ members, data, weekOffset, onChangeWeek }) {
+export default function RankPage({ members, data, tasks, weekOffset, onChangeWeek }) {
   const dates = getWeekDates(weekOffset)
   const monday = dates[0]
   const sunday = dates[6]
@@ -48,7 +47,7 @@ export default function RankPage({ members, data, weekOffset, onChangeWeek }) {
               <div className={styles.rankNum}>{i + 1}</div>
               <div className={styles.rankInfo}>
                 <div className={styles.rankName}>{s.emoji} {s.name}</div>
-                <div className={styles.rankScore}>本周 {s.score} / {7 * TASKS.length} 项</div>
+                <div className={styles.rankScore}>本周 {s.score} / {7 * tasks.length} 项</div>
                 <div className={styles.barBg}>
                   <div className={styles.bar} style={{ width: `${barWidth}%` }} />
                 </div>

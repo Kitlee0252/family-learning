@@ -27,7 +27,7 @@ export function isFutureDay(d) {
   t.setHours(0, 0, 0, 0)
   const check = new Date(d)
   check.setHours(0, 0, 0, 0)
-  return check >= t
+  return check > t
 }
 
 export function getWeekDates(offset) {

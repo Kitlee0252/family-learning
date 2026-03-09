@@ -22,7 +22,7 @@ export default function ProgressRing({ done, total, memberName }) {
       <div className={styles.msg}>
         <strong>{memberName}</strong>
         <br />
-        {MSGS[done]}
+        {done === 0 ? MSGS[0] : done === total ? MSGS[3] : done >= total - 1 ? MSGS[2] : MSGS[1]}
       </div>
     </div>
   )

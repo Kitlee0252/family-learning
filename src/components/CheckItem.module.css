@@ -32,6 +32,10 @@
   background: var(--purple-light);
 }
 
+.item[data-type="custom"].done {
+  background: var(--blue-light);
+}
+
 .icon {
   width: 26px;
   height: 26px;
@@ -61,6 +65,10 @@
 
 .item[data-type="read"].done .icon {
   background: var(--purple);
+}
+
+.item[data-type="custom"].done .icon {
+  background: var(--accent);
 }
 
 .label {
@@ -101,11 +109,56 @@
   margin-top: 10px;
 }
 
+.openNote {
+  max-height: 320px;
+}
+
 .detailInner {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 0 4px;
+}
+
+.noteHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.noteTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.noteTags {
+  display: flex;
+  gap: 6px;
+}
+
+.noteTag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+
+.tagSee {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.tagKnow {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.tagDo {
+  background: #dcfce7;
+  color: #15803d;
 }
 
 .textarea {
@@ -116,13 +169,17 @@
   font-size: 14px;
   font-family: inherit;
   resize: none;
-  min-height: 44px;
-  overflow: hidden;
+  min-height: 80px;
+  overflow-y: auto;
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
   -webkit-appearance: none;
   appearance: none;
+}
+
+.textareaNote {
+  min-height: 120px;
 }
 
 .textarea:focus {
