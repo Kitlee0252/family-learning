@@ -8,7 +8,7 @@ export default function ProgressRing({ done, total, memberName }) {
   return (
     <div className={styles.section}>
       <div className={styles.ringWrap}>
-        <svg width="68" height="68" viewBox="0 0 68 68">
+        <svg width="100%" height="100%" viewBox="0 0 68 68">
           <circle className={styles.ringBg} cx="34" cy="34" r="28" />
           <circle
             className={styles.ringFg}
