@@ -1,0 +1,67 @@
+:root {
+  --bg: #f5f3ef;
+  --card: #ffffff;
+  --text: #2c2c2c;
+  --text-light: #999;
+  --accent: #e8704a;
+  --green: #4caf84;
+  --green-light: #e8f5ef;
+  --blue: #5b8def;
+  --blue-light: #eaf1ff;
+  --purple: #9b7bdb;
+  --purple-light: #f3efff;
+  --border: #ebebeb;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --radius: 16px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, 'SF Pro SC', 'PingFang SC', 'Helvetica Neue', 'Noto Sans SC', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100%;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: calc(12px + var(--safe-top)) 16px calc(76px + var(--safe-bottom)) 16px;
+}
+
+.header {
+  text-align: center;
+  padding: 14px 0 12px;
+}
+
+.header h1 {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header .date {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 3px;
+}

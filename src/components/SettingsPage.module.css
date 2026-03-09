@@ -1,0 +1,110 @@
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+
+.cardTitle {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-light);
+  margin-bottom: 14px;
+}
+
+.memberList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.memberInput {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  background: var(--bg);
+  -webkit-appearance: none;
+  color: var(--text);
+}
+
+.memberInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.btnDel {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  flex-shrink: 0;
+  background: #fee;
+  color: #e55;
+}
+
+.btnDel:active {
+  transform: scale(0.9);
+  transition: transform 0.1s;
+}
+
+.btnAdd {
+  width: 100%;
+  padding: 14px;
+  border: 2px dashed #ddd;
+  border-radius: 14px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-light);
+  font-family: inherit;
+  margin-top: 8px;
+}
+
+.btnAdd:active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.dataActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.btnAction {
+  flex: 1;
+  padding: 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text);
+  text-align: center;
+}
+
+.btnAction:active {
+  transform: scale(0.97);
+  border-color: var(--accent);
+  transition: transform 0.1s;
+}

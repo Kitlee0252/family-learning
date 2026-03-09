@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="mobile-web-app-capable" content="yes">
+<title>全家学习打卡</title>
+<style>
+  :root {
+    --bg: #f5f3ef;
+    --card: #ffffff;
+    --text: #2c2c2c;
+    --text-light: #999;
+    --accent: #e8704a;
+    --green: #4caf84;
+    --green-light: #e8f5ef;
+    --blue: #5b8def;
+    --blue-light: #eaf1ff;
+    --purple: #9b7bdb;
+    --purple-light: #f3efff;
+    --border: #ebebeb;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+    --radius: 16px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { font-size:16px; -webkit-text-size-adjust:100%; height:100%; }
+  body {
+    font-family: -apple-system,'SF Pro SC','PingFang SC','Helvetica Neue','Noto Sans SC',sans-serif;
+    background:var(--bg); color:var(--text);
+    min-height:100%; overflow-x:hidden; -webkit-overflow-scrolling:touch;
+  }
+  .app {
+    max-width:500px; margin:0 auto;
+    padding: calc(12px + var(--safe-top)) 16px calc(76px + var(--safe-bottom)) 16px;
+  }
+
+  .header { text-align:center; padding:14px 0 12px; }
+  .header h1 {
+    font-size:22px; font-weight:800; letter-spacing:1px;
+    background:linear-gradient(135deg,var(--accent),var(--purple));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  }
+  .header .date { font-size:12px; color:var(--text-light); margin-top:3px; }
+
+  /* Bottom Tab Bar */
+  .tab-bar {
+    position:fixed; bottom:0; left:0; right:0;
+    background:rgba(255,255,255,0.94);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border-top:0.5px solid rgba(0,0,0,0.08);
+    display:flex; justify-content:center;
+    padding:4px 0 calc(4px + var(--safe-bottom));
+    z-index:100;
+  }
+  .tab-bar-inner { display:flex; gap:2px; max-width:500px; width:100%; padding:0 6px; }
+  .tab {
+    flex:1; padding:5px 2px 3px; border:none; border-radius:8px;
+    font-size:10px; font-weight:500; cursor:pointer; font-family:inherit;
+    background:transparent; color:var(--text-light);
+    display:flex; flex-direction:column; align-items:center; gap:1px;
+    transition:color 0.2s; position:relative;
+  }
+  .tab-icon { font-size:22px; line-height:1; }
+  .tab.active { color:var(--accent); }
+  .tab.active::after {
+    content:''; position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:18px; height:2.5px; border-radius:2px; background:var(--accent);
+  }
+  .tab-rank.active { color:#e8a020; }
+  .tab-rank.active::after { background:#e8a020; }
+
+  .card {
+    background:var(--card); border-radius:var(--radius);
+    padding:18px; margin-bottom:14px; box-shadow:var(--shadow);
+  }
+  .card-title {
+    font-size:12px; font-weight:700; text-transform:uppercase;
+    letter-spacing:2px; color:var(--text-light); margin-bottom:14px;
+  }
+
+  .day-nav {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:14px; padding:0 2px;
+  }
+  .nav-btn {
+    width:38px; height:38px; border:none; border-radius:50%;
+    background:var(--card); box-shadow:0 1px 6px rgba(0,0,0,0.08);
+    cursor:pointer; font-size:18px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:inherit; color:var(--text); transition:all 0.1s;
+    -webkit-user-select:none; user-select:none;
+  }
+  .nav-btn:active { transform:scale(0.9); }
+  .nav-btn.disabled { opacity:0.25; pointer-events:none; }
+  .nav-label { font-size:14px; font-weight:600; color:var(--text); text-align:center; }
+  .today-badge {
+    display:inline-block; background:var(--accent); color:#fff;
+    font-size:10px; font-weight:700; padding:1px 8px; border-radius:20px;
+    margin-right:4px; vertical-align:middle; position:relative; top:-1px;
+  }
+
+  .progress-section { display:flex; align-items:center; gap:16px; padding:4px 0 14px; }
+  .ring-wrap { position:relative; width:68px; height:68px; flex-shrink:0; }
+  .ring-wrap svg { transform:rotate(-90deg); }
+  .ring-bg { fill:none; stroke:#f0f0f0; stroke-width:6; }
+  .ring-fg {
+    fill:none; stroke:var(--accent); stroke-width:6; stroke-linecap:round;
+    transition:stroke-dashoffset 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+  .ring-text {
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%); font-size:18px; font-weight:800;
+  }
+  .progress-msg { font-size:13px; color:var(--text-light); line-height:1.5; }
+  .progress-msg strong { color:var(--text); font-size:15px; }
+
+  .check-list { display:flex; flex-direction:column; gap:10px; }
+  .check-item {
+    display:flex; align-items:center; gap:14px;
+    padding:14px 16px; border-radius:14px; cursor:pointer;
+    transition:all 0.15s; -webkit-user-select:none; user-select:none;
+    border:1.5px solid var(--border); min-height:52px;
+  }
+  .check-item:active { transform:scale(0.98); }
+  .check-item.done { border-color:transparent; }
+  .check-item[data-type="note"].done { background:var(--green-light); }
+  .check-item[data-type="english"].done { background:var(--blue-light); }
+  .check-item[data-type="read"].done { background:var(--purple-light); }
+  .check-icon {
+    width:26px; height:26px; border-radius:50%;
+    border:2px solid #ddd; display:flex; align-items:center; justify-content:center;
+    font-size:12px; flex-shrink:0; transition:all 0.2s; color:transparent;
+  }
+  .check-item.done .check-icon { border-color:transparent; color:#fff; }
+  .check-item[data-type="note"].done .check-icon { background:var(--green); }
+  .check-item[data-type="english"].done .check-icon { background:var(--blue); }
+  .check-item[data-type="read"].done .check-icon { background:var(--purple); }
+  .check-label { font-size:15px; font-weight:500; flex:1; }
+  .check-emoji { font-size:20px; flex-shrink:0; }
+  .check-item .check-expand-arrow {
+    font-size:12px; color:var(--text-light); flex-shrink:0;
+    transition:transform 0.2s; margin-left:-4px;
+  }
+  .check-item.expanded .check-expand-arrow { transform:rotate(90deg); }
+
+  /* Expanded detail area */
+  .check-detail {
+    overflow:hidden; max-height:0; opacity:0;
+    transition:max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease;
+    margin-top:0;
+  }
+  .check-detail.open {
+    max-height:200px; opacity:1; margin-top:10px;
+  }
+  .check-detail-inner {
+    display:flex; flex-direction:column; gap:8px;
+    padding:0 4px;
+  }
+  .check-detail textarea {
+    width:100%; border:1.5px solid var(--border); border-radius:10px;
+    padding:10px 12px; font-size:14px; font-family:inherit;
+    resize:none; min-height:44px; overflow:hidden;
+    background:var(--bg); color:var(--text); line-height:1.5;
+    -webkit-appearance:none; appearance:none;
+  }
+  .check-detail textarea:focus { outline:none; border-color:var(--accent); }
+  .check-detail-actions {
+    display:flex; gap:8px; justify-content:flex-end;
+  }
+  .btn-check-confirm {
+    padding:7px 18px; border:none; border-radius:10px;
+    font-size:13px; font-weight:600; font-family:inherit;
+    cursor:pointer; transition:all 0.15s;
+  }
+  .btn-check-confirm:active { transform:scale(0.95); }
+  .btn-check-done {
+    background:var(--accent); color:#fff;
+  }
+  .btn-check-undo {
+    background:#fee; color:#e55;
+  }
+
+  /* Structured Notes */
+  .note-field { margin-bottom:12px; }
+  .note-field:last-child { margin-bottom:0; }
+  .note-field-header {
+    display:flex; align-items:center; gap:6px;
+    margin-bottom:6px; padding:0 2px;
+  }
+  .note-field-header .dot { width:8px; height:8px; border-radius:50%; display:inline-block; flex-shrink:0; }
+  .note-field-header .label { font-size:13px; font-weight:600; color:var(--text-light); }
+  .dot-see { background:var(--green); }
+  .dot-know { background:var(--blue); }
+  .dot-do { background:var(--purple); }
+  textarea {
+    width:100%; border:1.5px solid var(--border); border-radius:12px;
+    padding:12px 14px; font-size:15px; font-family:inherit;
+    resize:none; min-height:60px; overflow:hidden;
+    transition:border-color 0.2s; background:var(--bg); color:var(--text); line-height:1.5;
+    -webkit-appearance:none; appearance:none;
+  }
+  textarea:focus { outline:none; border-color:var(--accent); }
+  .note-field-see textarea:focus { border-color:var(--green); }
+  .note-field-know textarea:focus { border-color:var(--blue); }
+  .note-field-do textarea:focus { border-color:var(--purple); }
+
+  .rank-item {
+    display:flex; align-items:center; gap:12px;
+    padding:16px; border-radius:14px; margin-bottom:10px;
+    background:var(--card); box-shadow:var(--shadow);
+  }
+  .rank-item:active { transform:scale(0.98); transition:transform 0.1s; }
+  .rank-item.rank-first {
+    background:linear-gradient(135deg,#fffbe6,#fff3cc);
+    border:1.5px solid rgba(240,208,80,0.3);
+  }
+  .rank-item.rank-last {
+    background:linear-gradient(135deg,#fff0eb,#ffe8e0);
+    border:1.5px solid rgba(232,112,74,0.2);
+  }
+  .rank-num { font-size:22px; font-weight:900; width:30px; text-align:center; flex-shrink:0; color:var(--text-light); }
+  .rank-first .rank-num { color:#d4a017; }
+  .rank-info { flex:1; min-width:0; }
+  .rank-name { font-size:16px; font-weight:700; }
+  .rank-score { font-size:11px; color:var(--text-light); margin-top:2px; }
+  .rank-bar-bg { height:6px; background:#eee; border-radius:3px; margin-top:8px; overflow:hidden; }
+  .rank-bar { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--accent),#f6d365); transition:width 0.6s ease; }
+  .rank-badge { font-size:22px; flex-shrink:0; }
+  .rank-note {
+    text-align:center; font-size:12px; color:var(--text-light);
+    margin-top:14px; padding:14px; background:var(--card);
+    border-radius:14px; line-height:1.7; box-shadow:var(--shadow);
+  }
+
+  .member-list { display:flex; flex-direction:column; gap:10px; }
+  .member-row { display:flex; align-items:center; gap:10px; }
+  .member-row input {
+    flex:1; padding:12px 14px; border:1.5px solid var(--border);
+    border-radius:12px; font-size:15px; font-family:inherit;
+    background:var(--bg); -webkit-appearance:none; color:var(--text);
+  }
+  .member-row input:focus { outline:none; border-color:var(--accent); }
+  .btn-icon {
+    width:44px; height:44px; border:none; border-radius:12px;
+    cursor:pointer; font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:inherit; flex-shrink:0;
+  }
+  .btn-icon:active { transform:scale(0.9); transition:transform 0.1s; }
+  .btn-del { background:#fee; color:#e55; }
+  .btn-add {
+    width:100%; padding:14px; border:2px dashed #ddd; border-radius:14px;
+    background:transparent; cursor:pointer; font-size:14px;
+    color:var(--text-light); font-family:inherit; margin-top:8px;
+  }
+  .btn-add:active { border-color:var(--accent); color:var(--accent); }
+  .data-actions { display:flex; gap:10px; margin-top:6px; }
+  .btn-action {
+    flex:1; padding:12px; border:1.5px solid var(--border);
+    border-radius:12px; background:var(--bg); cursor:pointer;
+    font-size:13px; font-weight:600; font-family:inherit;
+    color:var(--text); text-align:center;
+  }
+  .btn-action:active { transform:scale(0.97); border-color:var(--accent); transition:transform 0.1s; }
+
+  .section { display:none; }
+  .section.active { display:block; }
+
+  .toast {
+    position:fixed; top:calc(16px + var(--safe-top)); left:50%;
+    transform:translateX(-50%) translateY(-120%);
+    background:rgba(44,44,44,0.92); color:#fff;
+    padding:10px 24px; border-radius:30px; font-size:14px; font-weight:500;
+    z-index:200; transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); white-space:nowrap;
+  }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+
+  @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.25)} 100%{transform:scale(1)} }
+  .pop { animation:pop 0.3s ease; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>📚 全家学习打卡</h1>
+    <div class="date" id="todayDate"></div>
+  </div>
+
+  <div class="section" id="personSection">
+    <div class="day-nav">
+      <button class="nav-btn" onclick="changeDay(-1)">‹</button>
+      <div class="nav-label" id="dayLabel"></div>
+      <button class="nav-btn" id="nextDayBtn" onclick="changeDay(1)">›</button>
+    </div>
+    <div class="card">
+      <div class="progress-section">
+        <div class="ring-wrap">
+          <svg width="68" height="68" viewBox="0 0 68 68">
+            <circle class="ring-bg" cx="34" cy="34" r="28"/>
+            <circle class="ring-fg" id="ring" cx="34" cy="34" r="28"
+              stroke-dasharray="175.9" stroke-dashoffset="175.9"/>
+          </svg>
+          <div class="ring-text" id="ringText">0/3</div>
+        </div>
+        <div class="progress-msg" id="progressMsg"></div>
+      </div>
+      <div class="check-list" id="checkList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📝 今日笔记</div>
+      <div id="noteFields"></div>
+    </div>
+  </div>
+
+  <div class="section" id="rankSection">
+    <div class="day-nav">
+      <button class="nav-btn" onclick="changeWeek(-1)">‹</button>
+      <div class="nav-label" id="weekLabel"></div>
+      <button class="nav-btn" onclick="changeWeek(1)">›</button>
+    </div>
+    <div id="rankList"></div>
+    <div class="rank-note">🏆 最后一名给第一名发奖品<br>具体奖品家庭会议决定！</div>
+  </div>
+
+  <div class="section" id="settingsSection">
+    <div class="card">
+      <div class="card-title">👨‍👩‍👧‍👦 家庭成员</div>
+      <div class="member-list" id="memberList"></div>
+      <button class="btn-add" onclick="addMember()">＋ 添加成员</button>
+    </div>
+    <div class="card">
+      <div class="card-title">💾 数据管理</div>
+      <div class="data-actions">
+        <button class="btn-action" onclick="exportData()">📤 导出备份</button>
+        <button class="btn-action" onclick="document.getElementById('importFile').click()">📥 导入恢复</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-bar"><div class="tab-bar-inner" id="tabBar"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ==========================================
+//  数据层：统一管理 state 和 localStorage
+// ==========================================
+const STORAGE_KEY_MEMBERS = 'flt_members';
+const STORAGE_KEY_DATA = 'flt_data';
+const STORAGE_KEY_MIGRATED = 'flt_migrated_v2';
+
+function loadJSON(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) return JSON.parse(raw);
+  } catch(e) { console.warn('Load error:', key, e); }
+  return fallback;
+}
+
+// ==========================================
+//  v1 → v2 数据迁移：名字 key → ID key
+// ==========================================
+function migrateData() {
+  if (localStorage.getItem(STORAGE_KEY_MIGRATED)) return;
+
+  const oldMembers = loadJSON(STORAGE_KEY_MEMBERS, null);
+  const oldData = loadJSON(STORAGE_KEY_DATA, null);
+
+  // No old data to migrate
+  if (!oldMembers || !Array.isArray(oldMembers)) return;
+
+  // Already in new format (array of objects)
+  if (oldMembers.length > 0 && typeof oldMembers[0] === 'object' && oldMembers[0].id) {
+    localStorage.setItem(STORAGE_KEY_MIGRATED, '1');
+    return;
+  }
+
+  // Old format: members is string array like ['爸爸','妈妈','宝贝']
+  const newMembers = oldMembers.map((name, i) => ({
+    id: 'm_' + (i + 1),
+    name: name,
+    emoji: MEMBER_EMOJIS[i % MEMBER_EMOJIS.length]
+  }));
+
+  // Migrate data keys: "爸爸_2026-03-09" → "m_1_2026-03-09"
+  if (oldData) {
+    const newData = {};
+    Object.entries(oldData).forEach(([key, value]) => {
+      let migrated = false;
+      for (const member of newMembers) {
+        const prefix = member.name + '_';
+        if (key.startsWith(prefix)) {
+          const dateStr = key.slice(prefix.length);
+          newData[member.id + '_' + dateStr] = migrateNotes(value);
+          migrated = true;
+          break;
+        }
+      }
+      if (!migrated) {
+        // Orphaned key, keep as-is with note migration
+        newData[key] = migrateNotes(value);
+      }
+    });
+    localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(newData));
+  }
+
+  localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(newMembers));
+  localStorage.setItem(STORAGE_KEY_MIGRATED, '1');
+  console.log('✅ 数据迁移完成: v1 → v2', newMembers);
+}
+
+// Migrate notes: {content: "..."} → {see: "...", know: "", do: ""}
+function migrateNotes(entry) {
+  if (!entry || !entry.notes) return entry;
+  if (entry.notes.content !== undefined && entry.notes.see === undefined) {
+    entry.notes = {
+      see: entry.notes.content || '',
+      know: '',
+      do: ''
+    };
+  }
+  return entry;
+}
+
+// ==========================================
+//  常量
+// ==========================================
+const TASKS = [
+  { key:'note', label:'记笔记', emoji:'✏️', type:'note' },
+  { key:'english', label:'学英语（多邻国）', emoji:'🦉', type:'english' },
+  { key:'read', label:'做阅读', emoji:'📖', type:'read' }
+];
+const NOTE_FIELDS = [
+  { key:'see', label:'看到了', dotClass:'dot-see', fieldClass:'note-field-see', placeholder:'今天看到了什么...' },
+  { key:'know', label:'知道了', dotClass:'dot-know', fieldClass:'note-field-know', placeholder:'今天学到了什么...' },
+  { key:'do', label:'做到了', dotClass:'dot-do', fieldClass:'note-field-do', placeholder:'今天做到了什么...' }
+];
+const MSGS = ['还没开始哦，加油 💤','好的开始！继续 💪','就差一个啦 🚀','全部完成！太棒了 🎉'];
+const WEEKDAYS = ['日','一','二','三','四','五','六'];
+const MEMBER_EMOJIS = ['🧑','👩','👦','👧','🧒','👴','👵'];
+const DEFAULT_MEMBERS = [
+  { id:'m_1', name:'爸爸', emoji:'🧑' },
+  { id:'m_2', name:'妈妈', emoji:'👩' },
+  { id:'m_3', name:'宝贝', emoji:'👦' }
+];
+
+// ==========================================
+//  迁移后加载 state
+// ==========================================
+migrateData();
+
+let state = {
+  members: loadJSON(STORAGE_KEY_MEMBERS, DEFAULT_MEMBERS),
+  data: loadJSON(STORAGE_KEY_DATA, {}),
+  currentTab: 0,
+  currentDay: new Date(),
+  weekOffset: 0
+};
+let expandedTask = null; // track which task is expanded
+
+function persist() {
+  try {
+    localStorage.setItem(STORAGE_KEY_MEMBERS, JSON.stringify(state.members));
+    localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(state.data));
+  } catch(e) { console.warn('Save error:', e); }
+}
+
+// ==========================================
+//  工具函数
+// ==========================================
+function dateKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function dataKey(memberId, date) {
+  return `${memberId}_${dateKey(date)}`;
+}
+
+function getPersonData(memberId, date) {
+  const key = dataKey(memberId, date);
+  if (!state.data[key]) {
+    state.data[key] = { tasks: {}, notes: { see:'', know:'', do:'' }, readContent:'', noteContent:'' };
+  }
+  // Ensure notes has new structure
+  const notes = state.data[key].notes;
+  if (notes && notes.see === undefined) {
+    state.data[key].notes = { see: notes.content || '', know:'', do:'' };
+  }
+  // Ensure new fields exist
+  if (state.data[key].readContent === undefined) state.data[key].readContent = '';
+  if (state.data[key].noteContent === undefined) state.data[key].noteContent = '';
+  return state.data[key];
+}
+
+function countTasksDone(memberId, date) {
+  const pd = state.data[dataKey(memberId, date)];
+  if (!pd || !pd.tasks) return 0;
+  return Object.values(pd.tasks).filter(Boolean).length;
+}
+
+function formatDate(d) {
+  return `${d.getMonth()+1}月${d.getDate()}日 周${WEEKDAYS[d.getDay()]}`;
+}
+
+function isToday(d) {
+  const t = new Date();
+  return d.getFullYear() === t.getFullYear()
+    && d.getMonth() === t.getMonth()
+    && d.getDate() === t.getDate();
+}
+
+function isFutureDay(d) {
+  const t = new Date();
+  t.setHours(0,0,0,0);
+  const check = new Date(d);
+  check.setHours(0,0,0,0);
+  return check >= t;
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.max(60, el.scrollHeight) + 'px';
+}
+
+function getWeekDates(offset) {
+  const today = new Date();
+  const dayOfWeek = today.getDay() || 7;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - dayOfWeek + 1 + offset * 7);
+
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+// ==========================================
+//  防抖
+// ==========================================
+const debounceTimers = {};
+function debounce(key, fn, delay) {
+  clearTimeout(debounceTimers[key]);
+  debounceTimers[key] = setTimeout(fn, delay);
+}
+
+// ==========================================
+//  渲染：底部 Tab 栏
+// ==========================================
+function renderTabBar() {
+  const bar = document.getElementById('tabBar');
+  bar.innerHTML = '';
+  state.members.forEach((m, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (state.currentTab === i ? ' active' : '');
+    btn.innerHTML = `<span class="tab-icon">${m.emoji}</span>${m.name}`;
+    btn.onclick = () => { state.currentTab = i; expandedTask = null; render(); };
+    bar.appendChild(btn);
+  });
+  const rb = document.createElement('button');
+  rb.className = 'tab tab-rank' + (state.currentTab === state.members.length ? ' active' : '');
+  rb.innerHTML = '<span class="tab-icon">🏆</span>排行';
+  rb.onclick = () => { state.currentTab = state.members.length; render(); };
+  bar.appendChild(rb);
+  const sb = document.createElement('button');
+  sb.className = 'tab' + (state.currentTab === state.members.length + 1 ? ' active' : '');
+  sb.innerHTML = '<span class="tab-icon">⚙️</span>设置';
+  sb.onclick = () => { state.currentTab = state.members.length + 1; render(); };
+  bar.appendChild(sb);
+}
+
+// ==========================================
+//  渲染：主入口
+// ==========================================
+function render() {
+  renderTabBar();
+  const isPerson = state.currentTab < state.members.length;
+  const isRank = state.currentTab === state.members.length;
+  const isSettings = state.currentTab === state.members.length + 1;
+
+  document.getElementById('personSection').classList.toggle('active', isPerson);
+  document.getElementById('rankSection').classList.toggle('active', isRank);
+  document.getElementById('settingsSection').classList.toggle('active', isSettings);
+
+  if (isPerson) renderPerson();
+  else if (isRank) renderRank();
+  else renderSettings();
+}
+
+// ==========================================
+//  渲染：个人打卡页
+// ==========================================
+function renderPerson() {
+  const member = state.members[state.currentTab];
+  const day = state.currentDay;
+  const pd = getPersonData(member.id, day);
+
+  // 日期导航
+  const label = document.getElementById('dayLabel');
+  if (isToday(day)) {
+    label.innerHTML = `<span class="today-badge">今天</span>${formatDate(day)}`;
+  } else {
+    label.textContent = formatDate(day);
+  }
+
+  // 前进按钮：今天时禁用
+  const nextBtn = document.getElementById('nextDayBtn');
+  nextBtn.classList.toggle('disabled', isToday(day));
+
+  // 打卡列表
+  const cl = document.getElementById('checkList');
+  cl.innerHTML = '';
+  let doneCount = 0;
+
+  TASKS.forEach(task => {
+    const isDone = !!pd.tasks[task.key];
+    if (isDone) doneCount++;
+    const isExpanded = expandedTask === task.key;
+    const needsText = task.key === 'read' || task.key === 'note';
+
+    // Wrapper for item + detail
+    const wrapper = document.createElement('div');
+
+    // Main clickable row
+    const div = document.createElement('div');
+    div.className = 'check-item' + (isDone ? ' done' : '') + (isExpanded ? ' expanded' : '');
+    div.dataset.type = task.type;
+    div.innerHTML = `
+      <div class="check-icon">${isDone ? '✓' : ''}</div>
+      <span class="check-label">${task.label}</span>
+      <span class="check-emoji">${task.emoji}</span>
+      <span class="check-expand-arrow">▸</span>
+    `;
+    div.onclick = (e) => {
+      e.stopPropagation();
+      expandedTask = isExpanded ? null : task.key;
+      renderPerson();
+    };
+    wrapper.appendChild(div);
+
+    // Expandable detail area
+    const detail = document.createElement('div');
+    detail.className = 'check-detail' + (isExpanded ? ' open' : '');
+    const inner = document.createElement('div');
+    inner.className = 'check-detail-inner';
+
+    if (needsText) {
+      const contentKey = task.key === 'read' ? 'readContent' : 'noteContent';
+      const placeholder = task.key === 'read' ? '今天读了什么...' : '简要记录笔记内容...';
+      const ta = document.createElement('textarea');
+      ta.placeholder = placeholder;
+      ta.value = pd[contentKey] || '';
+      ta.onclick = (e) => e.stopPropagation();
+      ta.oninput = function() {
+        autoGrow(this);
+        pd[contentKey] = this.value;
+        debounce('checkContent', () => persist(), 300);
+      };
+      inner.appendChild(ta);
+      // Auto-size after appending
+      setTimeout(() => { ta.style.height = 'auto'; ta.style.height = Math.max(44, ta.scrollHeight) + 'px'; }, 0);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'check-detail-actions';
+    if (!isDone) {
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'btn-check-confirm btn-check-done';
+      confirmBtn.textContent = '完成';
+      confirmBtn.onclick = (e) => {
+        e.stopPropagation();
+        pd.tasks[task.key] = true;
+        persist();
+        expandedTask = null;
+        const newDone = Object.values(pd.tasks).filter(Boolean).length;
+        if (newDone === TASKS.length) showToast('🎉 全部完成！太棒了');
+        renderPerson();
+      };
+      actions.appendChild(confirmBtn);
+    } else {
+      const undoBtn = document.createElement('button');
+      undoBtn.className = 'btn-check-confirm btn-check-undo';
+      undoBtn.textContent = '取消完成';
+      undoBtn.onclick = (e) => {
+        e.stopPropagation();
+        pd.tasks[task.key] = false;
+        persist();
+        expandedTask = null;
+        renderPerson();
+      };
+      actions.appendChild(undoBtn);
+    }
+    inner.appendChild(actions);
+    detail.appendChild(inner);
+    wrapper.appendChild(detail);
+    cl.appendChild(wrapper);
+  });
+
+  // 进度环
+  const pct = doneCount / TASKS.length;
+  document.getElementById('ring').style.strokeDashoffset = 175.9 * (1 - pct);
+  document.getElementById('ringText').textContent = `${doneCount}/${TASKS.length}`;
+  document.getElementById('progressMsg').innerHTML = `<strong>${member.name}</strong><br>${MSGS[doneCount]}`;
+
+  // 三栏笔记
+  const noteContainer = document.getElementById('noteFields');
+  noteContainer.innerHTML = '';
+  NOTE_FIELDS.forEach(field => {
+    const wrapper = document.createElement('div');
+    wrapper.className = `note-field ${field.fieldClass}`;
+    wrapper.innerHTML = `
+      <div class="note-field-header">
+        <span class="dot ${field.dotClass}"></span>
+        <span class="label">${field.label}</span>
+      </div>
+    `;
+    const ta = document.createElement('textarea');
+    ta.placeholder = field.placeholder;
+    ta.value = pd.notes[field.key] || '';
+    ta.oninput = function() {
+      autoGrow(this);
+      saveNote(field.key, this.value);
+    };
+    wrapper.appendChild(ta);
+    noteContainer.appendChild(wrapper);
+    // Auto-size on render
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(60, ta.scrollHeight) + 'px';
+  });
+}
+
+function saveNote(fieldKey, value) {
+  if (state.currentTab >= state.members.length) return;
+  const member = state.members[state.currentTab];
+  const pd = getPersonData(member.id, state.currentDay);
+  pd.notes[fieldKey] = value;
+  debounce('saveNote', () => persist(), 300);
+}
+
+function changeDay(delta) {
+  const newDay = new Date(state.currentDay.getTime() + delta * 86400000);
+  // Block navigation to future dates
+  if (delta > 0 && isFutureDay(newDay)) return;
+  state.currentDay = newDay;
+  expandedTask = null;
+  renderPerson();
+}
+
+// ==========================================
+//  渲染：排行榜
+// ==========================================
+function renderRank() {
+  const dates = getWeekDates(state.weekOffset);
+  const monday = dates[0];
+  const sunday = dates[6];
+
+  document.getElementById('weekLabel').textContent =
+    `${monday.getMonth()+1}/${monday.getDate()} — ${sunday.getMonth()+1}/${sunday.getDate()}`;
+
+  const scores = state.members.map(member => {
+    let total = 0;
+    dates.forEach(d => {
+      const key = dataKey(member.id, d);
+      const pd = state.data[key];
+      if (pd && pd.tasks) {
+        total += Object.values(pd.tasks).filter(Boolean).length;
+      }
+    });
+    return { name: member.name, emoji: member.emoji, score: total };
+  });
+
+  scores.sort((a, b) => b.score - a.score);
+  const maxScore = Math.max(...scores.map(s => s.score), 1);
+  const badges = ['🥇','🥈','🥉'];
+
+  const rl = document.getElementById('rankList');
+  rl.innerHTML = '';
+
+  scores.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'rank-item';
+    if (i === 0) div.classList.add('rank-first');
+    if (i === scores.length - 1 && scores.length > 1) div.classList.add('rank-last');
+
+    const badge = badges[i] || (i === scores.length - 1 && scores.length > 1 ? '🎁' : '');
+    const barWidth = (s.score / maxScore) * 100;
+
+    div.innerHTML = `
+      <div class="rank-num">${i + 1}</div>
+      <div class="rank-info">
+        <div class="rank-name">${s.emoji} ${s.name}</div>
+        <div class="rank-score">本周 ${s.score} / ${7 * TASKS.length} 项</div>
+        <div class="rank-bar-bg"><div class="rank-bar" style="width:${barWidth}%"></div></div>
+      </div>
+      <div class="rank-badge">${badge}</div>
+    `;
+    rl.appendChild(div);
+  });
+}
+
+function changeWeek(delta) {
+  state.weekOffset += delta;
+  renderRank();
+}
+
+// ==========================================
+//  渲染：设置页
+// ==========================================
+function renderSettings() {
+  const ml = document.getElementById('memberList');
+  ml.innerHTML = '';
+  state.members.forEach((m, i) => {
+    const div = document.createElement('div');
+    div.className = 'member-row';
+    const inp = document.createElement('input');
+    inp.value = m.name;
+    inp.placeholder = '姓名';
+    inp.oninput = function() { updateMember(i, this.value); };
+    const btn = document.createElement('button');
+    btn.className = 'btn-icon btn-del';
+    btn.textContent = '✕';
+    btn.onclick = () => removeMember(i);
+    div.appendChild(inp);
+    div.appendChild(btn);
+    ml.appendChild(div);
+  });
+}
+
+function updateMember(i, newName) {
+  state.members[i].name = newName;
+  debounce('updateMember', () => {
+    persist();
+    renderTabBar();
+  }, 300);
+}
+
+function removeMember(i) {
+  if (state.members.length <= 1) return;
+  state.members.splice(i, 1);
+  if (state.currentTab >= state.members.length) state.currentTab = 0;
+  persist();
+  render();
+}
+
+function addMember() {
+  const nextId = 'm_' + (Date.now() % 100000);
+  const emojiIdx = state.members.length % MEMBER_EMOJIS.length;
+  state.members.push({
+    id: nextId,
+    name: '成员' + (state.members.length + 1),
+    emoji: MEMBER_EMOJIS[emojiIdx]
+  });
+  persist();
+  render();
+}
+
+// ==========================================
+//  数据导出 / 导入
+// ==========================================
+function exportData() {
+  const blob = new Blob(
+    [JSON.stringify({ version:2, members: state.members, data: state.data }, null, 2)],
+    { type: 'application/json' }
+  );
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `学习打卡备份_${dateKey(new Date())}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('✅ 已导出备份文件');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const obj = JSON.parse(ev.target.result);
+      if (obj.members && obj.data) {
+        state.members = obj.members;
+        state.data = obj.data;
+        persist();
+        state.currentTab = 0;
+        render();
+        showToast('✅ 数据已恢复');
+      } else {
+        showToast('❌ 文件格式不正确');
+      }
+    } catch { showToast('❌ 文件读取失败'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ==========================================
+//  手势：左右滑动切换日期
+// ==========================================
+let touchStartX = 0, touchStartY = 0;
+document.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  if (state.currentTab >= state.members.length) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    changeDay(dx > 0 ? -1 : 1);
+  }
+}, { passive: true });
+
+// ==========================================
+//  自检（仅 debug 模式：URL 加 ?debug）
+// ==========================================
+function selfTest() {
+  const testData = {};
+  const testMembers = [{id:'t_1',name:'测试A',emoji:'🧑'},{id:'t_2',name:'测试B',emoji:'👩'}];
+  const today = new Date();
+
+  const keyA = `t_1_${dateKey(today)}`;
+  testData[keyA] = { tasks: { note: true, english: true, read: false }, notes: {see:'',know:'',do:''}, readContent:'', noteContent:'' };
+  const keyB = `t_2_${dateKey(today)}`;
+  testData[keyB] = { tasks: { note: true, english: true, read: true }, notes: {see:'',know:'',do:''}, readContent:'', noteContent:'' };
+
+  const dates = getWeekDates(0);
+  const scores = testMembers.map(m => {
+    let total = 0;
+    dates.forEach(d => {
+      const k = `${m.id}_${dateKey(d)}`;
+      const pd = testData[k];
+      if (pd && pd.tasks) total += Object.values(pd.tasks).filter(Boolean).length;
+    });
+    return { name: m.name, score: total };
+  });
+
+  const pass = scores[0].score === 2 && scores[1].score === 3;
+  console.log('✅ 自检结果:', pass ? 'PASS' : 'FAIL', scores);
+  return pass;
+}
+
+// ==========================================
+//  初始化
+// ==========================================
+document.getElementById('todayDate').textContent = formatDate(new Date());
+if (location.search.includes('debug')) selfTest();
+render();
+</script>
+</body>
+</html>

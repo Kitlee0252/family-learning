@@ -1,0 +1,76 @@
+.field {
+  margin-bottom: 12px;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 0 2px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.dotSee {
+  background: var(--green);
+}
+
+.dotKnow {
+  background: var(--blue);
+}
+
+.dotDo {
+  background: var(--purple);
+}
+
+.textarea {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  resize: none;
+  min-height: 60px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.textarea.fieldSee:focus {
+  border-color: var(--green);
+}
+
+.textarea.fieldKnow:focus {
+  border-color: var(--blue);
+}
+
+.textarea.fieldDo:focus {
+  border-color: var(--purple);
+}
