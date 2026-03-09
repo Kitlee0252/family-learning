@@ -49,11 +49,84 @@ All state lives in a single custom hook `src/hooks/useStore.js`. No external sta
 
 `src/legacy/family-tracker.html` is the original single-file HTML version (~970 lines). Kept for reference; not used in the React app.
 
+### Supabase Integration (Offline-first + Cloud Sync)
+
+**策略**：localStorage 仍为主数据源，Supabase 作为云端同步层。
+
+- **身份标识**：`household_id`（UUID，存在 localStorage 的 `flt_household_id`），无需登录
+- **启动同步**：App 启动时从 Supabase 拉取最新数据覆盖本地；首次使用则推送本地到云端
+- **写入同步**：打卡/成员/任务变更后异步推送（fire-and-forget），文本输入 1 秒防抖
+- **离线支持**：推送失败静默处理，下次启动时云端数据会补齐
+
+**数据库表**（Supabase project: `wginlfqxxrkfduujwvvo`，region: ap-south-1）：
+
+| 表 | 说明 | 主键 |
+|---|------|------|
+| `households` | 家庭（数据隔离单元） | `id` (UUID) |
+| `members` | 成员 | `(household_id, id)` |
+| `tasks` | 任务定义 | `(household_id, id)` |
+| `checkins` | 每日打卡（规范化：一条 = 一个成员一天一个任务） | `id` (UUID)，UNIQUE on `(household_id, member_id, date, task_key)` |
+
+**RLS**：已启用，当前使用开放策略（`USING (true)`）。加登录后改为 `USING (auth.uid() = user_id)`。
+
+**关键文件**：
+- `src/lib/supabase.js` — Supabase 客户端单例
+- `src/lib/sync.js` — 全部同步函数（push/pull/format 转换）
+- `src/hooks/useStore.js` — householdId state + 各操作的 sync 调用
+
+**环境变量**（Vercel + `.env`）：
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
 ## Development Notes
 
 - 使用 `frontend-design` skill 指导 UI 设计
-- 通过 Supabase MCP 管理数据库（`.mcp.json` 已配置，代码尚未接入）
+- 通过 Supabase MCP 管理数据库（project ID: `wginlfqxxrkfduujwvvo`）
 - Mobile-first: uses safe-area insets, touch swipe for day navigation, no-scale viewport
 - CSS custom properties defined in `src/App.css` (--accent, --green, --blue, --purple color system)
 - Textarea 统一使用固定高度 + overflow-y scroll（笔记 120px，其他 80px）
-- Deployed via GitHub → Vercel
+- Deployed via GitHub → Vercel（push 自动部署）
+
+### Reverse Proxy (国内访问) — 已完成
+
+**服务器**：香港一号（156.226.177.89），Caddy + sslip.io 自动 SSL
+
+**国内访问地址**：`https://156-226-177-89.sslip.io`
+
+**架构**：
+- `/api/*` → strip prefix → `wginlfqxxrkfduujwvvo.supabase.co`（Supabase API）
+- 其他请求 → `family-learning-theta.vercel.app`（前端）
+
+**Vercel 环境变量**：`VITE_SUPABASE_URL` = `https://156-226-177-89.sslip.io/api`
+
+### Multi-device Sync (多设备同步)
+
+每个浏览器首次打开会生成独立的 `household_id`（UUID），数据按 household 隔离。
+
+**同步机制**：通过 URL 参数 `?h=<household_id>` 加入已有 household。
+- `src/lib/sync.js`：`getOrInitHouseholdId()` 优先读取 URL 参数 `?h=`，写入 localStorage 后清理 URL
+- 设置页提供「复制同步链接」按钮，生成带 `?h=` 参数的完整 URL
+
+## Roadmap
+
+### 已完成
+
+- [x] React 19 + Vite 7 基础架构
+- [x] 成员管理（增删改）
+- [x] 自定义任务系统（增删、改名、换图标）
+- [x] 每日打卡 + 文本记录
+- [x] 周排行榜
+- [x] 数据导入/导出（JSON）
+- [x] 数据迁移 v1→v2
+- [x] Supabase 云端同步（offline-first）
+- [x] Vercel 部署 + 环境变量配置
+
+### 后续计划
+
+- [x] 反向代理（国内可访问）— 香港一号 Caddy
+- [x] 多设备同步（通过分享链接共享 household）
+- [ ] 用户登录（推荐 Logto，支持微信 OAuth）
+- [ ] 连续打卡 / 趋势可视化
+- [ ] 笔记结构化改进
+- [ ] AI 分析学习数据
+- [ ] 付费功能（爱发电/Stripe → 微信支付）

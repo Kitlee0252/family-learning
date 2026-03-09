@@ -3,7 +3,19 @@ import { supabase } from './supabase'
 const HOUSEHOLD_KEY = 'flt_household_id'
 
 // Generate or retrieve household ID from localStorage
+// Supports URL parameter ?h=<id> to join an existing household
 export function getOrInitHouseholdId() {
+  // Check URL parameter first — allows sharing household via link
+  const params = new URLSearchParams(window.location.search)
+  const urlId = params.get('h')
+  if (urlId) {
+    localStorage.setItem(HOUSEHOLD_KEY, urlId)
+    // Clean URL without reload
+    const clean = window.location.pathname + window.location.hash
+    window.history.replaceState(null, '', clean)
+    return urlId
+  }
+
   let id = localStorage.getItem(HOUSEHOLD_KEY)
   if (!id) {
     id = crypto.randomUUID()

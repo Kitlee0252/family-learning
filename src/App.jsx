@@ -77,6 +77,7 @@ function AppContent() {
         <SettingsPage
           members={members}
           tasks={tasks}
+          householdId={store.householdId}
           onAddMember={addMember}
           onRemoveMember={removeMember}
           onUpdateMemberName={updateMemberName}

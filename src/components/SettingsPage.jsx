@@ -56,7 +56,7 @@ function TaskRow({ task, onRemove, onUpdate, pickerOpen, onTogglePicker }) {
 }
 
 export default function SettingsPage({
-  members, tasks,
+  members, tasks, householdId,
   onAddMember, onRemoveMember, onUpdateMemberName,
   onAddTask, onRemoveTask, onUpdateTask,
   onExport, onImport,
@@ -137,6 +137,20 @@ export default function SettingsPage({
         <button className={styles.btnAdd} onClick={onAddTask}>
           ＋ 添加项目
         </button>
+      </div>
+
+      <div className={styles.card}>
+        <div className={styles.cardTitle}>🔗 多设备同步</div>
+        <p className={styles.syncHint}>在其他设备打开以下链接，即可同步数据</p>
+        <div className={styles.dataActions}>
+          <button className={styles.btnAction} onClick={() => {
+            const url = `${window.location.origin}${window.location.pathname}?h=${householdId}`
+            navigator.clipboard.writeText(url).then(
+              () => showToast('✅ 同步链接已复制'),
+              () => showToast('❌ 复制失败，请手动复制')
+            )
+          }}>📋 复制同步链接</button>
+        </div>
       </div>
 
       <div className={styles.card}>
