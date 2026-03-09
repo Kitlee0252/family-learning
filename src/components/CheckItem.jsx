@@ -10,13 +10,40 @@ export default function CheckItem({
   const textareaRef = useRef(null)
 
   useEffect(() => {
-    if (isExpanded && textareaRef.current) {
-      textareaRef.current.focus()
-      // Delay scrollIntoView to wait for mobile keyboard to appear
-      setTimeout(() => {
-        textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }, 300)
-    }
+    if (!isExpanded || !textareaRef.current) return
+    const el = textareaRef.current
+
+    // Wait for expand animation (250ms) to finish before focusing
+    const focusTimer = setTimeout(() => {
+      el.focus({ preventScroll: true })
+
+      // Use visualViewport resize to detect keyboard settled, then scroll
+      const vv = window.visualViewport
+      if (vv) {
+        let scrollTimer = null
+        const onResize = () => {
+          clearTimeout(scrollTimer)
+          // Wait for viewport to stabilize (keyboard animation done)
+          scrollTimer = setTimeout(() => {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            vv.removeEventListener('resize', onResize)
+          }, 120)
+        }
+        vv.addEventListener('resize', onResize)
+        // Fallback: if keyboard is already open (switching tasks), viewport won't resize
+        setTimeout(() => {
+          vv.removeEventListener('resize', onResize)
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 400)
+      } else {
+        // Fallback for browsers without visualViewport
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 300)
+      }
+    }, 260)
+
+    return () => clearTimeout(focusTimer)
   }, [isExpanded])
 
   const placeholder = isNote
