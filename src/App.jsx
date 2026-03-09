@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useStore } from './hooks/useStore'
 import { formatDate } from './utils/date'
 import { ToastProvider } from './components/Toast'
@@ -9,6 +9,17 @@ import SettingsPage from './components/SettingsPage'
 import './App.css'
 
 function AppContent() {
+  // Read ?size=N from URL and apply to <html> for CSS preset switching
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const size = params.get('size')
+    if (size && ['1', '2', '3', '4', '5'].includes(size)) {
+      document.documentElement.setAttribute('data-size', size)
+    } else {
+      document.documentElement.removeAttribute('data-size')
+    }
+  }, [])
+
   const store = useStore()
   const {
     members, data, tasks, currentTab, currentDay, weekOffset, expandedTask,
