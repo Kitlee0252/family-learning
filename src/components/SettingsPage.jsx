@@ -7,6 +7,10 @@ function EmojiPicker({ current, onSelect, onClose }) {
   return (
     <div className={styles.emojiPickerBackdrop} onClick={onClose}>
       <div className={styles.emojiPicker} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.pickerHeader}>
+          <span className={styles.pickerTitle}>选择图标</span>
+          <button className={styles.pickerClose} onClick={onClose}>✕</button>
+        </div>
         <div className={styles.emojiGrid}>
           {TASK_EMOJIS.map((emoji) => (
             <button

@@ -151,6 +151,38 @@
   }
 }
 
+.pickerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.pickerTitle {
+  font-size: var(--btn-font);
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.pickerClose {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text-light);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.pickerClose:active {
+  transform: scale(0.9);
+  background: var(--border);
+}
+
 .emojiGrid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
