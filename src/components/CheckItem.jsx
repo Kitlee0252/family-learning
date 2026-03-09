@@ -12,6 +12,10 @@ export default function CheckItem({
   useEffect(() => {
     if (isExpanded && textareaRef.current) {
       textareaRef.current.focus()
+      // Delay scrollIntoView to wait for mobile keyboard to appear
+      setTimeout(() => {
+        textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 300)
     }
   }, [isExpanded])
 

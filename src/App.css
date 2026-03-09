@@ -16,25 +16,25 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
-  /* Size preset variables (defaults = current) */
-  --font-base: 16px;
-  --title-size: 22px;
-  --date-size: 12px;
-  --tab-icon: 22px;
-  --tab-font: 10px;
-  --tab-padding: 5px 2px 3px;
-  --tab-gap: 1px;
-  --tab-bar-padding: 4px;
-  --app-bottom: 76px;
-  --check-label: 15px;
-  --check-emoji: 20px;
-  --check-icon: 26px;
-  --check-padding: 14px 16px;
-  --ring-size: 68px;
-  --ring-text: 18px;
-  --nav-btn: 38px;
-  --nav-label: 14px;
-  --btn-font: 13px;
+  /* Size variables (Preset 3: 底栏重点) */
+  --font-base: 17px;
+  --title-size: 24px;
+  --date-size: 13px;
+  --tab-icon: 32px;
+  --tab-font: 13px;
+  --tab-padding: 8px 4px 5px;
+  --tab-gap: 3px;
+  --tab-bar-padding: 6px;
+  --app-bottom: 96px;
+  --check-label: 16px;
+  --check-emoji: 22px;
+  --check-icon: 28px;
+  --check-padding: 15px 16px;
+  --ring-size: 74px;
+  --ring-text: 19px;
+  --nav-btn: 40px;
+  --nav-label: 15px;
+  --btn-font: 14px;
 }
 
 /* Preset 1: 微调 — 略微放大，最保守 */
@@ -80,26 +80,26 @@
   --btn-font: 14px;
 }
 
-/* Preset 3: 底栏重点 — 底部导航大幅放大，其他适度 */
+/* Preset 3: 原始尺寸（用于对比） */
 [data-size="3"] {
-  --font-base: 17px;
-  --title-size: 24px;
-  --date-size: 13px;
-  --tab-icon: 32px;
-  --tab-font: 13px;
-  --tab-padding: 8px 4px 5px;
-  --tab-gap: 3px;
-  --tab-bar-padding: 6px;
-  --app-bottom: 96px;
-  --check-label: 16px;
-  --check-emoji: 22px;
-  --check-icon: 28px;
-  --check-padding: 15px 16px;
-  --ring-size: 74px;
-  --ring-text: 19px;
-  --nav-btn: 40px;
-  --nav-label: 15px;
-  --btn-font: 14px;
+  --font-base: 16px;
+  --title-size: 22px;
+  --date-size: 12px;
+  --tab-icon: 22px;
+  --tab-font: 10px;
+  --tab-padding: 5px 2px 3px;
+  --tab-gap: 1px;
+  --tab-bar-padding: 4px;
+  --app-bottom: 76px;
+  --check-label: 15px;
+  --check-emoji: 20px;
+  --check-icon: 26px;
+  --check-padding: 14px 16px;
+  --ring-size: 68px;
+  --ring-text: 18px;
+  --nav-btn: 38px;
+  --nav-label: 14px;
+  --btn-font: 13px;
 }
 
 /* Preset 4: 全局大号 — 各元素均匀大幅放大 */
@@ -193,4 +193,45 @@ body {
   font-size: var(--date-size);
   color: var(--text-light);
   margin-top: 3px;
+}
+
+/* Page transition animation */
+.pageContent {
+  will-change: transform, opacity;
+}
+
+.slideInLeft {
+  animation: slideFromRight 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.slideInRight {
+  animation: slideFromLeft 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes slideFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Font consistency: ensure all inputs/buttons/textareas inherit */
+input, button, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
 }
