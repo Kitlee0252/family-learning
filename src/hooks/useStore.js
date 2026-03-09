@@ -1,7 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { STORAGE_KEY_MEMBERS, STORAGE_KEY_DATA, STORAGE_KEY_TASKS, DEFAULT_MEMBERS, DEFAULT_TASKS, MEMBER_EMOJIS, TASK_EMOJIS } from '../utils/constants'
-import { dataKey } from '../utils/date'
+import { dataKey, dateKey } from '../utils/date'
 import { isFutureDay } from '../utils/date'
+import {
+  getOrInitHouseholdId, ensureHousehold,
+  pushMembers, pushTasks, pushCheckin, pushAllCheckins,
+  pullAll, checkinsToLocalFormat,
+} from '../lib/sync'
 
 function loadJSON(key, fallback) {
   try {
@@ -21,6 +26,9 @@ export function useStore() {
   const [currentDay, setCurrentDay] = useState(() => new Date())
   const [weekOffset, setWeekOffset] = useState(0)
   const [expandedTask, setExpandedTask] = useState(null)
+  const [syncStatus, setSyncStatus] = useState('idle') // idle | syncing | done | error
+
+  const householdId = useRef(getOrInitHouseholdId())
 
   // Debounced persist
   const persistTimer = useRef(null)
@@ -46,6 +54,37 @@ export function useStore() {
 
   // Persist on changes
   useEffect(() => { persist() }, [members, data, tasks, persist])
+
+  // Startup: pull from Supabase and merge
+  const hasPulled = useRef(false)
+  useEffect(() => {
+    if (hasPulled.current) return
+    hasPulled.current = true
+    const hid = householdId.current
+    ;(async () => {
+      setSyncStatus('syncing')
+      try {
+        await ensureHousehold(hid)
+        const remote = await pullAll(hid)
+        if (remote && remote.checkins.length > 0) {
+          // Remote has data — use it
+          if (remote.members.length > 0) setMembers(remote.members)
+          if (remote.tasks.length > 0) setTasks(remote.tasks)
+          const remoteData = checkinsToLocalFormat(remote.checkins)
+          setData(prev => ({ ...prev, ...remoteData }))
+        } else {
+          // No remote data — push local to Supabase (first-time sync)
+          await pushMembers(hid, membersRef.current)
+          await pushTasks(hid, tasksRef.current)
+          await pushAllCheckins(hid, dataRef.current, tasksRef.current)
+        }
+        setSyncStatus('done')
+      } catch (e) {
+        console.warn('Initial sync failed:', e)
+        setSyncStatus('error')
+      }
+    })()
+  }, [])
 
   const getPersonData = useCallback((memberId, date) => {
     const key = dataKey(memberId, date)
@@ -86,6 +125,10 @@ export function useStore() {
         },
       }
     })
+    // Sync to Supabase
+    const d = dateKey(date)
+    const entry = dataRef.current[key]
+    pushCheckin(householdId.current, memberId, d, taskKey, value, entry?.[taskKey + 'Content'] || null)
   }, [])
 
   const updateNote = useCallback((memberId, date, fieldKey, value) => {
@@ -102,6 +145,8 @@ export function useStore() {
     })
   }, [])
 
+  // Debounced content sync to avoid pushing on every keystroke
+  const contentSyncTimer = useRef(null)
   const updateTaskContent = useCallback((memberId, date, contentKey, value) => {
     const key = dataKey(memberId, date)
     setData(prev => {
@@ -114,6 +159,14 @@ export function useStore() {
         },
       }
     })
+    // Debounced sync to Supabase
+    clearTimeout(contentSyncTimer.current)
+    contentSyncTimer.current = setTimeout(() => {
+      const taskKey = contentKey.replace(/Content$/, '')
+      const d = dateKey(date)
+      const entry = dataRef.current[key]
+      pushCheckin(householdId.current, memberId, d, taskKey, !!entry?.tasks?.[taskKey], value)
+    }, 1000)
   }, [])
 
   const changeDay = useCallback((delta) => {
@@ -138,7 +191,9 @@ export function useStore() {
     setMembers(prev => {
       const nextId = 'm_' + (Date.now() % 100000)
       const emojiIdx = prev.length % MEMBER_EMOJIS.length
-      return [...prev, { id: nextId, name: '成员' + (prev.length + 1), emoji: MEMBER_EMOJIS[emojiIdx] }]
+      const next = [...prev, { id: nextId, name: '成员' + (prev.length + 1), emoji: MEMBER_EMOJIS[emojiIdx] }]
+      pushMembers(householdId.current, next)
+      return next
     })
   }, [])
 
@@ -147,6 +202,7 @@ export function useStore() {
       if (prev.length <= 1) return prev
       const next = [...prev]
       next.splice(index, 1)
+      pushMembers(householdId.current, next)
       return next
     })
     setCurrentTab(prev => {
@@ -159,6 +215,7 @@ export function useStore() {
     setMembers(prev => {
       const next = [...prev]
       next[index] = { ...next[index], name }
+      pushMembers(householdId.current, next)
       return next
     })
   }, [])
@@ -167,21 +224,29 @@ export function useStore() {
     setTasks(prev => {
       const nextKey = 'task_' + (Date.now() % 100000)
       const emojiIdx = prev.length % TASK_EMOJIS.length
-      return [...prev, { id: nextKey, key: nextKey, label: '新项目', emoji: TASK_EMOJIS[emojiIdx], type: 'custom' }]
+      const next = [...prev, { id: nextKey, key: nextKey, label: '新项目', emoji: TASK_EMOJIS[emojiIdx], type: 'custom' }]
+      pushTasks(householdId.current, next)
+      return next
     })
   }, [])
 
   const removeTask = useCallback((taskKey) => {
     setTasks(prev => {
       if (prev.length <= 1) return prev
-      return prev.filter(t => t.key !== taskKey)
+      const next = prev.filter(t => t.key !== taskKey)
+      pushTasks(householdId.current, next)
+      return next
     })
   }, [])
 
   const updateTask = useCallback((taskKey, field, value) => {
-    setTasks(prev => prev.map(t =>
-      t.key === taskKey ? { ...t, [field]: value } : t
-    ))
+    setTasks(prev => {
+      const next = prev.map(t =>
+        t.key === taskKey ? { ...t, [field]: value } : t
+      )
+      pushTasks(householdId.current, next)
+      return next
+    })
   }, [])
 
   const exportData = useCallback(() => {
@@ -213,7 +278,8 @@ export function useStore() {
   }, [])
 
   return {
-    members, data, tasks, currentTab, currentDay, weekOffset, expandedTask,
+    members, data, tasks, currentTab, currentDay, weekOffset, expandedTask, syncStatus,
+    householdId: householdId.current,
     getPersonData, toggleTask, updateNote, updateTaskContent,
     changeDay, changeWeek, switchTab, setExpandedTask,
     addMember, removeMember, updateMemberName,
