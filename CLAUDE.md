@@ -39,7 +39,7 @@ All state lives in a single custom hook `src/hooks/useStore.js`. No external sta
 `App.jsx` switches between three views based on `currentTab` index:
 - **PersonPage** (tab 0..N-1): Per-member daily check-in — customizable task list, progress ring, expandable task details
 - **RankPage** (tab N): Weekly leaderboard across all members
-- **SettingsPage** (tab N+1): Member management, task management (with emoji picker), data export/import
+- **SettingsPage** (tab N+1): Member management, task management (with emoji picker), SMS login
 
 ### Data Migration
 
@@ -49,14 +49,16 @@ All state lives in a single custom hook `src/hooks/useStore.js`. No external sta
 
 `src/legacy/family-tracker.html` is the original single-file HTML version (~970 lines). Kept for reference; not used in the React app.
 
-### Supabase Integration (Offline-first + Cloud Sync)
+### Supabase Integration (Login-gated Cloud Sync)
 
-**策略**：localStorage 仍为主数据源，Supabase 作为云端同步层。
+**策略**：localStorage 为主数据源，登录后启用 Supabase 云端同步。
 
-- **身份标识**：`household_id`（UUID，存在 localStorage 的 `flt_household_id`），无需登录
-- **启动同步**：App 启动时从 Supabase 拉取最新数据覆盖本地；首次使用则推送本地到云端
-- **写入同步**：打卡/成员/任务变更后异步推送（fire-and-forget），文本输入 1 秒防抖
-- **离线支持**：推送失败静默处理，下次启动时云端数据会补齐
+- **未登录**：纯 localStorage，所有云端操作被 `syncEnabled` 开关拦截，不发任何 Supabase 请求
+- **登录后**：`setSyncEnabled(true)` → 首次登录全量推送本地数据到云端；已有账户则拉取云端数据覆盖本地
+- **写入同步**：登录状态下，打卡/成员/任务变更后异步推送（fire-and-forget），文本输入 1 秒防抖
+- **登出**：`setSyncEnabled(false)` → 回到纯本地模式，数据保留在 localStorage
+- **身份标识**：`household_id`（UUID，存在 localStorage 的 `flt_household_id`），登录后绑定到用户
+- **多设备同步**：同一手机号在不同设备登录，自动关联到同一 household
 
 **数据库表**（Supabase project: `wginlfqxxrkfduujwvvo`，region: ap-south-1）：
 
@@ -67,12 +69,18 @@ All state lives in a single custom hook `src/hooks/useStore.js`. No external sta
 | `tasks` | 任务定义 | `(household_id, id)` |
 | `checkins` | 每日打卡（规范化：一条 = 一个成员一天一个任务） | `id` (UUID)，UNIQUE on `(household_id, member_id, date, task_key)` |
 
-**RLS**：已启用，当前使用开放策略（`USING (true)`）。加登录后改为 `USING (auth.uid() = user_id)`。
+**RLS**：已启用，当前使用开放策略（`USING (true)`）。后续可改为 `USING (auth.uid() = user_id)`。
 
 **关键文件**：
 - `src/lib/supabase.js` — Supabase 客户端单例
-- `src/lib/sync.js` — 全部同步函数（push/pull/format 转换）
+- `src/lib/sync.js` — 全部同步函数（push/pull/format 转换）+ `syncEnabled` 开关
 - `src/hooks/useStore.js` — householdId state + 各操作的 sync 调用
+- `src/hooks/useAuth.js` — SMS 登录 hook（OTP 发送/验证/状态管理）
+
+**SMS 登录**（阿里云 PNVS + Supabase Edge Functions）：
+- `supabase/functions/send-otp/` — 调用阿里云发送验证码
+- `supabase/functions/verify-otp/` — 验证码校验 + Supabase 用户创建/登录
+- `supabase/functions/_shared/aliyun-signer.ts` — 阿里云 API 签名工具
 
 **环境变量**（Vercel + `.env`）：
 - `VITE_SUPABASE_URL`
@@ -101,11 +109,9 @@ All state lives in a single custom hook `src/hooks/useStore.js`. No external sta
 
 ### Multi-device Sync (多设备同步)
 
-每个浏览器首次打开会生成独立的 `household_id`（UUID），数据按 household 隔离。
+通过 SMS 登录实现：同一手机号在不同设备登录，自动关联到同一 household 并拉取云端数据。
 
-**同步机制**：通过 URL 参数 `?h=<household_id>` 加入已有 household。
-- `src/lib/sync.js`：`getOrInitHouseholdId()` 优先读取 URL 参数 `?h=`，写入 localStorage 后清理 URL
-- 设置页提供「复制同步链接」按钮，生成带 `?h=` 参数的完整 URL
+每个浏览器首次打开仍生成独立的 `household_id`（UUID），登录后绑定到用户账户。
 
 ## Roadmap
 
@@ -116,16 +122,14 @@ All state lives in a single custom hook `src/hooks/useStore.js`. No external sta
 - [x] 自定义任务系统（增删、改名、换图标）
 - [x] 每日打卡 + 文本记录
 - [x] 周排行榜
-- [x] 数据导入/导出（JSON）
 - [x] 数据迁移 v1→v2
-- [x] Supabase 云端同步（offline-first）
+- [x] Supabase 云端同步（login-gated）
 - [x] Vercel 部署 + 环境变量配置
+- [x] 反向代理（国内可访问）— 香港一号 Caddy
+- [x] 多设备同步（SMS 登录关联 household）
+- [x] SMS 登录（阿里云 PNVS + Supabase Edge Functions）
 
 ### 后续计划
-
-- [x] 反向代理（国内可访问）— 香港一号 Caddy
-- [x] 多设备同步（通过分享链接共享 household）
-- [ ] 用户登录（推荐 Logto，支持微信 OAuth）
 - [ ] 连续打卡 / 趋势可视化
 - [ ] 笔记结构化改进
 - [ ] AI 分析学习数据
