@@ -268,6 +268,29 @@ export function useStore() {
     setSyncStatus('idle')
   }, [])
 
+  // Pull latest data when page becomes visible (multi-device sync)
+  useEffect(() => {
+    const onVisibilityChange = async () => {
+      if (document.visibilityState !== 'visible') return
+      if (!syncEnabled) return
+      const hid = householdId.current
+      try {
+        const remote = await pullAll(hid)
+        if (remote) {
+          if (remote.members.length > 0) setMembers(remote.members)
+          if (remote.tasks.length > 0) setTasks(remote.tasks)
+          if (remote.checkins.length > 0) {
+            setData(prev => ({ ...prev, ...checkinsToLocalFormat(remote.checkins) }))
+          }
+        }
+      } catch (e) {
+        console.warn('Visibility pull failed:', e)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
+
   return {
     members, data, tasks, currentTab, currentDay, weekOffset, expandedTask, syncStatus,
     getPersonData, toggleTask, updateNote, updateTaskContent,
