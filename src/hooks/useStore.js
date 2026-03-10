@@ -5,7 +5,7 @@ import { isFutureDay } from '../utils/date'
 import {
   getOrInitHouseholdId, ensureHousehold, setSyncEnabled,
   pushMembers, pushTasks, pushCheckin, pushAllCheckins,
-  pullAll, checkinsToLocalFormat,
+  pullAll, mergeCheckins,
   bindHouseholdToUser, findUserHousehold, switchHousehold,
 } from '../lib/sync'
 
@@ -236,25 +236,27 @@ export function useStore() {
     try {
       const existingHid = await findUserHousehold(user.id)
       if (existingHid && existingHid !== householdId.current) {
-        // User already has a household — switch to it and pull
+        // User already has a household on another device — switch to it
         householdId.current = existingHid
         switchHousehold(existingHid)
-        const remote = await pullAll(existingHid)
-        if (remote) {
-          if (remote.members.length > 0) setMembers(remote.members)
-          if (remote.tasks.length > 0) setTasks(remote.tasks)
-          if (remote.checkins.length > 0) {
-            setData(prev => ({ ...prev, ...checkinsToLocalFormat(remote.checkins) }))
-          }
-        }
-      } else {
-        // New user — bind household and push local data to cloud
+      } else if (!existingHid) {
+        // Brand new user — create household in cloud
         const hid = householdId.current
         await ensureHousehold(hid)
         await bindHouseholdToUser(hid, user.id)
-        await pushMembers(hid, membersRef.current)
-        await pushTasks(hid, tasksRef.current)
-        await pushAllCheckins(hid, dataRef.current, tasksRef.current)
+      }
+      // Always bidirectional sync: push local → pull remote → deep merge
+      const hid = householdId.current
+      await pushMembers(hid, membersRef.current)
+      await pushTasks(hid, tasksRef.current)
+      await pushAllCheckins(hid, dataRef.current, tasksRef.current)
+      const remote = await pullAll(hid)
+      if (remote) {
+        if (remote.members.length > 0) setMembers(remote.members)
+        if (remote.tasks.length > 0) setTasks(remote.tasks)
+        if (remote.checkins.length > 0) {
+          setData(prev => mergeCheckins(prev, remote.checkins))
+        }
       }
       setSyncStatus('done')
     } catch (e) {
@@ -268,23 +270,25 @@ export function useStore() {
     setSyncStatus('idle')
   }, [])
 
-  // Pull latest data when page becomes visible (multi-device sync)
+  // Bidirectional sync when page becomes visible (multi-device sync)
   useEffect(() => {
     const onVisibilityChange = async () => {
       if (document.visibilityState !== 'visible') return
       if (!syncEnabled) return
       const hid = householdId.current
       try {
+        // Push local first, then pull remote and deep merge
+        await pushAllCheckins(hid, dataRef.current, tasksRef.current)
         const remote = await pullAll(hid)
         if (remote) {
           if (remote.members.length > 0) setMembers(remote.members)
           if (remote.tasks.length > 0) setTasks(remote.tasks)
           if (remote.checkins.length > 0) {
-            setData(prev => ({ ...prev, ...checkinsToLocalFormat(remote.checkins) }))
+            setData(prev => mergeCheckins(prev, remote.checkins))
           }
         }
       } catch (e) {
-        console.warn('Visibility pull failed:', e)
+        console.warn('Visibility sync failed:', e)
       }
     }
     document.addEventListener('visibilitychange', onVisibilityChange)

@@ -197,3 +197,33 @@ export function checkinsToLocalFormat(checkins) {
   }
   return data
 }
+
+// Deep merge remote checkins into local data
+// Rule: completed=true wins (never lose a completion); content takes non-empty or remote
+export function mergeCheckins(localData, remoteCheckins) {
+  const remote = checkinsToLocalFormat(remoteCheckins)
+  const merged = { ...localData }
+  for (const [key, remoteEntry] of Object.entries(remote)) {
+    const local = merged[key]
+    if (!local) {
+      // No local data for this key — take remote as-is
+      merged[key] = remoteEntry
+      continue
+    }
+    // Deep merge tasks: true wins
+    const mergedTasks = { ...local.tasks }
+    for (const [tk, tv] of Object.entries(remoteEntry.tasks)) {
+      if (tv) mergedTasks[tk] = true
+    }
+    // Merge content fields: prefer non-empty, prefer remote if both exist
+    const mergedEntry = { ...local, tasks: mergedTasks }
+    for (const [field, value] of Object.entries(remoteEntry)) {
+      if (field === 'tasks' || field === 'notes') continue
+      if (value && typeof value === 'string' && value.trim()) {
+        mergedEntry[field] = value
+      }
+    }
+    merged[key] = mergedEntry
+  }
+  return merged
+}
