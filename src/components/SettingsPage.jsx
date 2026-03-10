@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { TASK_EMOJIS, MEMBER_EMOJIS } from '../utils/constants'
 import { useToast } from './Toast'
 import styles from './SettingsPage.module.css'
@@ -173,40 +173,13 @@ function LoginCard({ user, loading, auth, onLoginSuccess }) {
 }
 
 export default function SettingsPage({
-  members, tasks, householdId,
+  members, tasks,
   onAddMember, onRemoveMember, onUpdateMemberName, onUpdateMemberEmoji,
   onAddTask, onRemoveTask, onUpdateTask,
-  onExport, onImport,
   auth, onLoginSuccess,
 }) {
-  const fileRef = useRef(null)
-  const showToast = useToast()
   const [emojiPickerFor, setEmojiPickerFor] = useState(null)
   const [memberEmojiPickerFor, setMemberEmojiPickerFor] = useState(null)
-
-  const handleExport = () => {
-    if (onExport()) showToast('✅ 已导出备份文件')
-  }
-
-  const handleImport = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      try {
-        const obj = JSON.parse(ev.target.result)
-        if (onImport(obj)) {
-          showToast('✅ 数据已恢复')
-        } else {
-          showToast('❌ 文件格式不正确')
-        }
-      } catch {
-        showToast('❌ 文件读取失败')
-      }
-    }
-    reader.readAsText(file)
-    e.target.value = ''
-  }
 
   const togglePicker = (taskKey) => {
     setEmojiPickerFor(prev => prev === taskKey ? null : taskKey)
@@ -284,34 +257,8 @@ export default function SettingsPage({
         </button>
       </div>
 
-      <div className={styles.card}>
-        <div className={styles.cardTitle}>🔗 多设备同步</div>
-        <p className={styles.syncHint}>在其他设备打开以下链接，即可同步数据</p>
-        <div className={styles.dataActions}>
-          <button className={styles.btnAction} onClick={() => {
-            const url = `${window.location.origin}${window.location.pathname}?h=${householdId}`
-            navigator.clipboard.writeText(url).then(
-              () => showToast('✅ 同步链接已复制'),
-              () => showToast('❌ 复制失败，请手动复制')
-            )
-          }}>📋 复制同步链接</button>
-        </div>
-      </div>
 
-      <div className={styles.card}>
-        <div className={styles.cardTitle}>💾 数据管理</div>
-        <div className={styles.dataActions}>
-          <button className={styles.btnAction} onClick={handleExport}>📤 导出备份</button>
-          <button className={styles.btnAction} onClick={() => fileRef.current?.click()}>📥 导入恢复</button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".json"
-            style={{ display: 'none' }}
-            onChange={handleImport}
-          />
-        </div>
-      </div>
+
     </div>
   )
 }

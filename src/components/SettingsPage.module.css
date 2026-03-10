@@ -218,41 +218,6 @@
   border-radius: 10px;
 }
 
-/* Sync hint */
-.syncHint {
-  font-size: 13px;
-  color: var(--text-light);
-  margin: 0 0 10px 0;
-  line-height: 1.5;
-}
-
-/* Data management */
-.dataActions {
-  display: flex;
-  gap: 10px;
-  margin-top: 6px;
-}
-
-.btnAction {
-  flex: 1;
-  padding: 12px;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg);
-  cursor: pointer;
-  font-size: var(--btn-font);
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--text);
-  text-align: center;
-}
-
-.btnAction:active {
-  transform: scale(0.97);
-  border-color: var(--accent);
-  transition: transform 0.1s;
-}
-
 /* Login card */
 .loginForm {
   display: flex;

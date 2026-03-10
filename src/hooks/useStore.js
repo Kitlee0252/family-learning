@@ -261,23 +261,6 @@ export function useStore() {
     })
   }, [])
 
-  const exportData = useCallback(() => {
-    const blob = new Blob(
-      [JSON.stringify({ version: 2, members: membersRef.current, data: dataRef.current, tasks: tasksRef.current }, null, 2)],
-      { type: 'application/json' }
-    )
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    const now = new Date()
-    const y = now.getFullYear()
-    const m = String(now.getMonth() + 1).padStart(2, '0')
-    const d = String(now.getDate()).padStart(2, '0')
-    a.download = `学习打卡备份_${y}-${m}-${d}.json`
-    a.click()
-    URL.revokeObjectURL(a.href)
-    return true
-  }, [])
-
   const handleLoginSuccess = useCallback(async (user) => {
     const existingHid = await findUserHousehold(user.id)
     if (existingHid && existingHid !== householdId.current) {
@@ -298,24 +281,12 @@ export function useStore() {
     }
   }, [])
 
-  const importData = useCallback((jsonObj) => {
-    if (jsonObj.members && jsonObj.data) {
-      setMembers(jsonObj.members)
-      setData(jsonObj.data)
-      if (jsonObj.tasks) setTasks(jsonObj.tasks)
-      setCurrentTab(0)
-      return true
-    }
-    return false
-  }, [])
-
   return {
     members, data, tasks, currentTab, currentDay, weekOffset, expandedTask, syncStatus,
-    householdId: householdId.current,
     getPersonData, toggleTask, updateNote, updateTaskContent,
     changeDay, changeWeek, switchTab, setExpandedTask,
     addMember, removeMember, updateMemberName, updateMemberEmoji,
     addTask, removeTask, updateTask,
-    exportData, importData, handleLoginSuccess,
+    handleLoginSuccess,
   }
 }

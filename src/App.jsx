@@ -28,7 +28,6 @@ function AppContent() {
     changeDay, changeWeek, switchTab, setExpandedTask,
     addMember, removeMember, updateMemberName, updateMemberEmoji,
     addTask, removeTask, updateTask,
-    exportData, importData,
     handleLoginSuccess,
   } = store
   const auth = useAuth()
@@ -107,7 +106,6 @@ function AppContent() {
           <SettingsPage
             members={members}
             tasks={tasks}
-            householdId={store.householdId}
             onAddMember={addMember}
             onRemoveMember={removeMember}
             onUpdateMemberName={updateMemberName}
@@ -115,8 +113,6 @@ function AppContent() {
             onAddTask={addTask}
             onRemoveTask={removeTask}
             onUpdateTask={updateTask}
-            onExport={exportData}
-            onImport={importData}
             auth={auth}
             onLoginSuccess={handleLoginSuccess}
           />
