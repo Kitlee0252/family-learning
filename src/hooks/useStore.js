@@ -6,6 +6,7 @@ import {
   getOrInitHouseholdId, ensureHousehold,
   pushMembers, pushTasks, pushCheckin, pushAllCheckins,
   pullAll, checkinsToLocalFormat,
+  bindHouseholdToUser, findUserHousehold, switchHousehold,
 } from '../lib/sync'
 
 function loadJSON(key, fallback) {
@@ -195,6 +196,8 @@ export function useStore() {
       pushMembers(householdId.current, next)
       return next
     })
+    // Keep settings tab active (its index shifts when members.length increases)
+    setCurrentTab(prev => prev + 1)
   }, [])
 
   const removeMember = useCallback((index) => {
@@ -215,6 +218,15 @@ export function useStore() {
     setMembers(prev => {
       const next = [...prev]
       next[index] = { ...next[index], name }
+      pushMembers(householdId.current, next)
+      return next
+    })
+  }, [])
+
+  const updateMemberEmoji = useCallback((index, emoji) => {
+    setMembers(prev => {
+      const next = [...prev]
+      next[index] = { ...next[index], emoji }
       pushMembers(householdId.current, next)
       return next
     })
@@ -266,6 +278,26 @@ export function useStore() {
     return true
   }, [])
 
+  const handleLoginSuccess = useCallback(async (user) => {
+    const existingHid = await findUserHousehold(user.id)
+    if (existingHid && existingHid !== householdId.current) {
+      // User already has a household — switch to it
+      householdId.current = existingHid
+      switchHousehold(existingHid)
+      const remote = await pullAll(existingHid)
+      if (remote) {
+        if (remote.members.length > 0) setMembers(remote.members)
+        if (remote.tasks.length > 0) setTasks(remote.tasks)
+        if (remote.checkins.length > 0) {
+          setData(prev => ({ ...prev, ...checkinsToLocalFormat(remote.checkins) }))
+        }
+      }
+    } else {
+      // Bind current household to this user
+      await bindHouseholdToUser(householdId.current, user.id)
+    }
+  }, [])
+
   const importData = useCallback((jsonObj) => {
     if (jsonObj.members && jsonObj.data) {
       setMembers(jsonObj.members)
@@ -282,8 +314,8 @@ export function useStore() {
     householdId: householdId.current,
     getPersonData, toggleTask, updateNote, updateTaskContent,
     changeDay, changeWeek, switchTab, setExpandedTask,
-    addMember, removeMember, updateMemberName,
+    addMember, removeMember, updateMemberName, updateMemberEmoji,
     addTask, removeTask, updateTask,
-    exportData, importData,
+    exportData, importData, handleLoginSuccess,
   }
 }

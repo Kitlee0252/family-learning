@@ -145,6 +145,37 @@ export async function pullAll(householdId) {
   }
 }
 
+// Bind a household to a user (after login)
+export async function bindHouseholdToUser(householdId, userId) {
+  if (!supabase) return
+  const { error } = await supabase
+    .from('households')
+    .update({ user_id: userId })
+    .eq('id', householdId)
+  if (error) console.warn('bindHouseholdToUser error:', error)
+}
+
+// Find household belonging to a user
+export async function findUserHousehold(userId) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('households')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1)
+    .maybeSingle()
+  if (error) {
+    console.warn('findUserHousehold error:', error)
+    return null
+  }
+  return data?.id ?? null
+}
+
+// Switch to a different household (update localStorage)
+export function switchHousehold(newHouseholdId) {
+  localStorage.setItem(HOUSEHOLD_KEY, newHouseholdId)
+}
+
 // Convert Supabase checkins to localStorage flat map format
 export function checkinsToLocalFormat(checkins) {
   const data = {}

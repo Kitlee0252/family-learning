@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from './hooks/useStore'
+import { useAuth } from './hooks/useAuth'
 import { formatDate } from './utils/date'
 import { ToastProvider } from './components/Toast'
 import TabBar from './components/TabBar'
@@ -25,10 +26,12 @@ function AppContent() {
     members, data, tasks, currentTab, currentDay, weekOffset, expandedTask,
     getPersonData, toggleTask, updateNote, updateTaskContent,
     changeDay, changeWeek, switchTab, setExpandedTask,
-    addMember, removeMember, updateMemberName,
+    addMember, removeMember, updateMemberName, updateMemberEmoji,
     addTask, removeTask, updateTask,
     exportData, importData,
+    handleLoginSuccess,
   } = store
+  const auth = useAuth()
 
   // Tab transition animation
   const [animating, setAnimating] = useState(false)
@@ -108,11 +111,14 @@ function AppContent() {
             onAddMember={addMember}
             onRemoveMember={removeMember}
             onUpdateMemberName={updateMemberName}
+            onUpdateMemberEmoji={updateMemberEmoji}
             onAddTask={addTask}
             onRemoveTask={removeTask}
             onUpdateTask={updateTask}
             onExport={exportData}
             onImport={importData}
+            auth={auth}
+            onLoginSuccess={handleLoginSuccess}
           />
         )}
       </div>
