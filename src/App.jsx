@@ -42,6 +42,7 @@ function AppContent() {
       setSlideDir(currentTab > prevTabRef.current ? 'left' : 'right')
       setAnimating(true)
       prevTabRef.current = currentTab
+      window.scrollTo(0, 0)
       const t = setTimeout(() => setAnimating(false), 250)
       return () => clearTimeout(t)
     }
