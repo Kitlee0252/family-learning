@@ -2,6 +2,10 @@ import { supabase } from './supabase'
 
 const HOUSEHOLD_KEY = 'flt_household_id'
 
+// Cloud sync is disabled until user logs in
+let syncEnabled = false
+export function setSyncEnabled(v) { syncEnabled = v }
+
 // Generate or retrieve household ID from localStorage
 // Supports URL parameter ?h=<id> to join an existing household
 export function getOrInitHouseholdId() {
@@ -26,7 +30,7 @@ export function getOrInitHouseholdId() {
 
 // Ensure household row exists in Supabase
 export async function ensureHousehold(householdId) {
-  if (!supabase) return
+  if (!supabase || !syncEnabled) return
   const { error } = await supabase
     .from('households')
     .upsert({ id: householdId }, { onConflict: 'id' })
@@ -35,7 +39,7 @@ export async function ensureHousehold(householdId) {
 
 // Push members to Supabase (full replace)
 export async function pushMembers(householdId, members) {
-  if (!supabase) return
+  if (!supabase || !syncEnabled) return
   // Delete existing then insert — simpler than upsert for ordered list
   await supabase.from('members').delete().eq('household_id', householdId)
   const rows = members.map((m, i) => ({
@@ -53,7 +57,7 @@ export async function pushMembers(householdId, members) {
 
 // Push tasks to Supabase (full replace)
 export async function pushTasks(householdId, tasks) {
-  if (!supabase) return
+  if (!supabase || !syncEnabled) return
   await supabase.from('tasks').delete().eq('household_id', householdId)
   const rows = tasks.map((t, i) => ({
     id: t.id,
@@ -72,7 +76,7 @@ export async function pushTasks(householdId, tasks) {
 
 // Push a single checkin record (upsert by unique constraint)
 export async function pushCheckin(householdId, memberId, date, taskKey, completed, content) {
-  if (!supabase) return
+  if (!supabase || !syncEnabled) return
   const { error } = await supabase
     .from('checkins')
     .upsert({
@@ -89,7 +93,7 @@ export async function pushCheckin(householdId, memberId, date, taskKey, complete
 
 // Push all checkins for a given data map (bulk sync)
 export async function pushAllCheckins(householdId, data, tasks) {
-  if (!supabase) return
+  if (!supabase || !syncEnabled) return
   const rows = []
   for (const [key, entry] of Object.entries(data)) {
     // key format: memberId_YYYY-MM-DD
@@ -128,7 +132,7 @@ export async function pushAllCheckins(householdId, data, tasks) {
 
 // Pull all data for a household
 export async function pullAll(householdId) {
-  if (!supabase) return null
+  if (!supabase || !syncEnabled) return null
   const [membersRes, tasksRes, checkinsRes] = await Promise.all([
     supabase.from('members').select('*').eq('household_id', householdId).order('sort_order'),
     supabase.from('tasks').select('*').eq('household_id', householdId).order('sort_order'),

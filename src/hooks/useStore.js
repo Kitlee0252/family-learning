@@ -3,7 +3,7 @@ import { STORAGE_KEY_MEMBERS, STORAGE_KEY_DATA, STORAGE_KEY_TASKS, DEFAULT_MEMBE
 import { dataKey, dateKey } from '../utils/date'
 import { isFutureDay } from '../utils/date'
 import {
-  getOrInitHouseholdId, ensureHousehold,
+  getOrInitHouseholdId, ensureHousehold, setSyncEnabled,
   pushMembers, pushTasks, pushCheckin, pushAllCheckins,
   pullAll, checkinsToLocalFormat,
   bindHouseholdToUser, findUserHousehold, switchHousehold,
@@ -55,37 +55,6 @@ export function useStore() {
 
   // Persist on changes
   useEffect(() => { persist() }, [members, data, tasks, persist])
-
-  // Startup: pull from Supabase and merge
-  const hasPulled = useRef(false)
-  useEffect(() => {
-    if (hasPulled.current) return
-    hasPulled.current = true
-    const hid = householdId.current
-    ;(async () => {
-      setSyncStatus('syncing')
-      try {
-        await ensureHousehold(hid)
-        const remote = await pullAll(hid)
-        if (remote && remote.checkins.length > 0) {
-          // Remote has data — use it
-          if (remote.members.length > 0) setMembers(remote.members)
-          if (remote.tasks.length > 0) setTasks(remote.tasks)
-          const remoteData = checkinsToLocalFormat(remote.checkins)
-          setData(prev => ({ ...prev, ...remoteData }))
-        } else {
-          // No remote data — push local to Supabase (first-time sync)
-          await pushMembers(hid, membersRef.current)
-          await pushTasks(hid, tasksRef.current)
-          await pushAllCheckins(hid, dataRef.current, tasksRef.current)
-        }
-        setSyncStatus('done')
-      } catch (e) {
-        console.warn('Initial sync failed:', e)
-        setSyncStatus('error')
-      }
-    })()
-  }, [])
 
   const getPersonData = useCallback((memberId, date) => {
     const key = dataKey(memberId, date)
@@ -262,23 +231,41 @@ export function useStore() {
   }, [])
 
   const handleLoginSuccess = useCallback(async (user) => {
-    const existingHid = await findUserHousehold(user.id)
-    if (existingHid && existingHid !== householdId.current) {
-      // User already has a household — switch to it
-      householdId.current = existingHid
-      switchHousehold(existingHid)
-      const remote = await pullAll(existingHid)
-      if (remote) {
-        if (remote.members.length > 0) setMembers(remote.members)
-        if (remote.tasks.length > 0) setTasks(remote.tasks)
-        if (remote.checkins.length > 0) {
-          setData(prev => ({ ...prev, ...checkinsToLocalFormat(remote.checkins) }))
+    setSyncEnabled(true)
+    setSyncStatus('syncing')
+    try {
+      const existingHid = await findUserHousehold(user.id)
+      if (existingHid && existingHid !== householdId.current) {
+        // User already has a household — switch to it and pull
+        householdId.current = existingHid
+        switchHousehold(existingHid)
+        const remote = await pullAll(existingHid)
+        if (remote) {
+          if (remote.members.length > 0) setMembers(remote.members)
+          if (remote.tasks.length > 0) setTasks(remote.tasks)
+          if (remote.checkins.length > 0) {
+            setData(prev => ({ ...prev, ...checkinsToLocalFormat(remote.checkins) }))
+          }
         }
+      } else {
+        // New user — bind household and push local data to cloud
+        const hid = householdId.current
+        await ensureHousehold(hid)
+        await bindHouseholdToUser(hid, user.id)
+        await pushMembers(hid, membersRef.current)
+        await pushTasks(hid, tasksRef.current)
+        await pushAllCheckins(hid, dataRef.current, tasksRef.current)
       }
-    } else {
-      // Bind current household to this user
-      await bindHouseholdToUser(householdId.current, user.id)
+      setSyncStatus('done')
+    } catch (e) {
+      console.warn('Sync after login failed:', e)
+      setSyncStatus('error')
     }
+  }, [])
+
+  const handleLogout = useCallback(() => {
+    setSyncEnabled(false)
+    setSyncStatus('idle')
   }, [])
 
   return {
@@ -287,6 +274,6 @@ export function useStore() {
     changeDay, changeWeek, switchTab, setExpandedTask,
     addMember, removeMember, updateMemberName, updateMemberEmoji,
     addTask, removeTask, updateTask,
-    handleLoginSuccess,
+    handleLoginSuccess, handleLogout,
   }
 }

@@ -59,7 +59,7 @@ function TaskRow({ task, onRemove, onUpdate, pickerOpen, onTogglePicker }) {
   )
 }
 
-function LoginCard({ user, loading, auth, onLoginSuccess }) {
+function LoginCard({ user, loading, auth }) {
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [step, setStep] = useState('phone') // phone | otp
@@ -108,7 +108,6 @@ function LoginCard({ user, loading, auth, onLoginSuccess }) {
       showToast('✅ 登录成功')
       setStep('phone')
       setOtp('')
-      onLoginSuccess(data.user)
     }
   }
 
@@ -176,7 +175,7 @@ export default function SettingsPage({
   members, tasks,
   onAddMember, onRemoveMember, onUpdateMemberName, onUpdateMemberEmoji,
   onAddTask, onRemoveTask, onUpdateTask,
-  auth, onLoginSuccess,
+  auth,
 }) {
   const [emojiPickerFor, setEmojiPickerFor] = useState(null)
   const [memberEmojiPickerFor, setMemberEmojiPickerFor] = useState(null)
@@ -192,7 +191,6 @@ export default function SettingsPage({
           user={auth.user}
           loading={auth.loading}
           auth={auth}
-          onLoginSuccess={onLoginSuccess}
         />
       )}
 

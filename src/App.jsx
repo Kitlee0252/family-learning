@@ -28,9 +28,23 @@ function AppContent() {
     changeDay, changeWeek, switchTab, setExpandedTask,
     addMember, removeMember, updateMemberName, updateMemberEmoji,
     addTask, removeTask, updateTask,
-    handleLoginSuccess,
+    handleLoginSuccess, handleLogout,
   } = store
   const auth = useAuth()
+
+  // Drive cloud sync based on auth state
+  const hasSynced = useRef(false)
+  useEffect(() => {
+    if (auth.loading) return
+    if (auth.user && !hasSynced.current) {
+      hasSynced.current = true
+      handleLoginSuccess(auth.user)
+    }
+    if (!auth.user) {
+      hasSynced.current = false
+      handleLogout()
+    }
+  }, [auth.loading, auth.user, handleLoginSuccess, handleLogout])
 
   // Tab transition animation
   const [animating, setAnimating] = useState(false)
@@ -115,7 +129,6 @@ function AppContent() {
             onRemoveTask={removeTask}
             onUpdateTask={updateTask}
             auth={auth}
-            onLoginSuccess={handleLoginSuccess}
           />
         )}
       </div>
