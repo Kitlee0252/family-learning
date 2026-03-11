@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useStore } from './hooks/useStore'
 import { useAuth } from './hooks/useAuth'
 import { formatDate } from './utils/date'
@@ -7,10 +7,18 @@ import TabBar from './components/TabBar'
 import PersonPage from './components/PersonPage'
 import RankPage from './components/RankPage'
 import SettingsPage from './components/SettingsPage'
+import StreakPage from './components/StreakPage'
 import './App.css'
 
 function AppContent() {
-  // Read ?size=N from URL and apply to <html> for CSS preset switching
+  // Read ?size=N and ?layout=a|b|c from URL
+  const calendarLayout = useMemo(() => {
+    const params = new URLSearchParams(window.location.search)
+    const layout = params.get('layout')
+    if (layout && ['a', 'b', 'c'].includes(layout)) return layout
+    return 'b' // default
+  }, [])
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const size = params.get('size')
@@ -62,9 +70,16 @@ function AppContent() {
     }
   }, [currentTab])
 
+  // Layout C inserts a streak tab between person tabs and rank tab
+  const hasStreakTab = calendarLayout === 'c'
+  const streakTabIdx = hasStreakTab ? members.length : -1
+  const rankTabIdx = members.length + (hasStreakTab ? 1 : 0)
+  const settingsTabIdx = rankTabIdx + 1
+
   const isPerson = currentTab < members.length
-  const isRank = currentTab === members.length
-  const isSettings = currentTab === members.length + 1
+  const isStreak = hasStreakTab && currentTab === streakTabIdx
+  const isRank = currentTab === rankTabIdx
+  const isSettings = currentTab === settingsTabIdx
 
   const member = isPerson ? members[currentTab] : null
   const personData = isPerson ? getPersonData(member.id, currentDay) : null
@@ -104,7 +119,13 @@ function AppContent() {
             onToggleTask={handleToggleTask}
             onUpdateNote={handleUpdateNote}
             onUpdateTaskContent={handleUpdateTaskContent}
+            data={data}
+            calendarLayout={calendarLayout}
           />
+        )}
+
+        {isStreak && (
+          <StreakPage members={members} data={data} tasks={tasks} />
         )}
 
         {isRank && (
@@ -137,6 +158,7 @@ function AppContent() {
         members={members}
         currentTab={currentTab}
         onTabChange={switchTab}
+        hasStreakTab={hasStreakTab}
       />
     </div>
   )
