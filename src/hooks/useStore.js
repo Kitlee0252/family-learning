@@ -91,29 +91,28 @@ export function useStore() {
 
   const getPersonData = useCallback((memberId, date) => {
     const key = dataKey(memberId, date)
+    const defaultEntry = { tasks: {}, notes: { see: '', know: '', do: '' }, readContent: '', noteContent: '' }
     if (!data[key]) {
-      const newEntry = { tasks: {}, notes: { see: '', know: '', do: '' }, readContent: '', noteContent: '' }
-      setData(prev => ({ ...prev, [key]: newEntry }))
-      return newEntry
+      return defaultEntry
     }
     const entry = data[key]
-    // Ensure fields exist
-    if (entry.notes?.see === undefined) {
-      entry.notes = { see: entry.notes?.content || '', know: '', do: '' }
-    }
-    if (entry.readContent === undefined) entry.readContent = ''
-    if (entry.noteContent === undefined) entry.noteContent = ''
-    // Migrate structured notes to noteContent
-    if (!entry.noteContent && entry.notes) {
+    // Return with defaults for missing fields (read-only, no state mutation)
+    const notes = entry.notes?.see !== undefined
+      ? entry.notes
+      : { see: entry.notes?.content || '', know: '', do: '' }
+    const readContent = entry.readContent ?? ''
+    let noteContent = entry.noteContent ?? ''
+    // Migrate structured notes to noteContent (on-the-fly, not persisted)
+    if (!noteContent && notes) {
       const parts = []
-      if (entry.notes.see) parts.push(`看到了：${entry.notes.see}`)
-      if (entry.notes.know) parts.push(`知道了：${entry.notes.know}`)
-      if (entry.notes.do) parts.push(`做到了：${entry.notes.do}`)
+      if (notes.see) parts.push(`看到了：${notes.see}`)
+      if (notes.know) parts.push(`知道了：${notes.know}`)
+      if (notes.do) parts.push(`做到了：${notes.do}`)
       if (parts.length > 0) {
-        entry.noteContent = parts.join('\n')
+        noteContent = parts.join('\n')
       }
     }
-    return entry
+    return { ...entry, notes, readContent, noteContent }
   }, [data])
 
   const toggleTask = useCallback((memberId, date, taskKey, value) => {
