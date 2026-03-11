@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo $SHELL)",
+      "Bash(source ~/.bashrc && type cc)",
+      "Bash(source ~/.bashrc && alias cc)",
+      "Read(//home/jimmy/.claude/plugins/**)",
+      "WebFetch(domain:docs.anthropic.com)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}
