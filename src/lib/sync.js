@@ -5,6 +5,25 @@ const HOUSEHOLD_KEY = 'flt_household_id'
 // Cloud sync is disabled until user logs in
 let syncEnabled = false
 export function setSyncEnabled(v) { syncEnabled = v }
+export function isSyncEnabled() { return syncEnabled }
+
+// Retry wrapper with exponential backoff
+async function withRetry(fn, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const result = await fn()
+    if (!result?.error) return result
+    if (attempt < maxRetries) {
+      console.warn(`Sync retry ${attempt + 1}/${maxRetries}:`, result.error.message)
+      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)))
+    } else {
+      return result
+    }
+  }
+}
+
+// Failed sync queue — retried on next visibility sync
+const failedQueue = []
+export function getFailedQueue() { return failedQueue }
 
 // Generate or retrieve household ID from localStorage
 // Supports URL parameter ?h=<id> to join an existing household
@@ -37,11 +56,9 @@ export async function ensureHousehold(householdId) {
   if (error) console.warn('ensureHousehold error:', error)
 }
 
-// Push members to Supabase (full replace)
+// Push members to Supabase (upsert + remove deleted — safe against network failures)
 export async function pushMembers(householdId, members) {
   if (!supabase || !syncEnabled) return
-  // Delete existing then insert — simpler than upsert for ordered list
-  await supabase.from('members').delete().eq('household_id', householdId)
   const rows = members.map((m, i) => ({
     id: m.id,
     household_id: householdId,
@@ -50,15 +67,25 @@ export async function pushMembers(householdId, members) {
     sort_order: i,
   }))
   if (rows.length > 0) {
-    const { error } = await supabase.from('members').insert(rows)
-    if (error) console.warn('pushMembers error:', error)
+    // Step 1: Upsert current members (safe — no data loss if crash here)
+    const { error } = await supabase
+      .from('members')
+      .upsert(rows, { onConflict: 'id,household_id' })
+    if (error) { console.warn('pushMembers upsert error:', error); return }
+    // Step 2: Delete members no longer in the list
+    const currentIds = members.map(m => m.id)
+    const { error: delError } = await supabase
+      .from('members')
+      .delete()
+      .eq('household_id', householdId)
+      .not('id', 'in', `(${currentIds.join(',')})`)
+    if (delError) console.warn('pushMembers delete error:', delError)
   }
 }
 
-// Push tasks to Supabase (full replace)
+// Push tasks to Supabase (upsert + remove deleted — safe against network failures)
 export async function pushTasks(householdId, tasks) {
   if (!supabase || !syncEnabled) return
-  await supabase.from('tasks').delete().eq('household_id', householdId)
   const rows = tasks.map((t, i) => ({
     id: t.id,
     household_id: householdId,
@@ -69,26 +96,44 @@ export async function pushTasks(householdId, tasks) {
     sort_order: i,
   }))
   if (rows.length > 0) {
-    const { error } = await supabase.from('tasks').insert(rows)
-    if (error) console.warn('pushTasks error:', error)
+    // Step 1: Upsert current tasks (safe — no data loss if crash here)
+    const { error } = await supabase
+      .from('tasks')
+      .upsert(rows, { onConflict: 'id,household_id' })
+    if (error) { console.warn('pushTasks upsert error:', error); return }
+    // Step 2: Delete tasks no longer in the list
+    const currentIds = tasks.map(t => t.id)
+    const { error: delError } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('household_id', householdId)
+      .not('id', 'in', `(${currentIds.join(',')})`)
+    if (delError) console.warn('pushTasks delete error:', delError)
   }
 }
 
-// Push a single checkin record (upsert by unique constraint)
+// Push a single checkin record (upsert by unique constraint) with retry
 export async function pushCheckin(householdId, memberId, date, taskKey, completed, content) {
   if (!supabase || !syncEnabled) return
-  const { error } = await supabase
-    .from('checkins')
-    .upsert({
-      household_id: householdId,
-      member_id: memberId,
-      date,
-      task_key: taskKey,
-      completed,
-      content: content || null,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'household_id,member_id,date,task_key' })
-  if (error) console.warn('pushCheckin error:', error)
+  const row = {
+    household_id: householdId,
+    member_id: memberId,
+    date,
+    task_key: taskKey,
+    completed,
+    content: content || null,
+    updated_at: new Date().toISOString(),
+  }
+  const result = await withRetry(() =>
+    supabase
+      .from('checkins')
+      .upsert(row, { onConflict: 'household_id,member_id,date,task_key' })
+  )
+  if (result?.error) {
+    console.warn('pushCheckin failed after retries:', result.error)
+    // Queue for retry on next visibility sync
+    failedQueue.push({ type: 'checkin', row })
+  }
 }
 
 // Push all checkins for a given data map (bulk sync)
@@ -96,18 +141,23 @@ export async function pushAllCheckins(householdId, data, tasks) {
   if (!supabase || !syncEnabled) return
   const rows = []
   for (const [key, entry] of Object.entries(data)) {
-    // key format: memberId_YYYY-MM-DD
-    const underscoreIdx = key.indexOf('_')
+    // key format: memberId_YYYY-MM-DD (memberId may contain underscores like m_1)
+    // Use lastIndexOf since date part (YYYY-MM-DD) has no underscores
+    const underscoreIdx = key.lastIndexOf('_')
     if (underscoreIdx === -1) continue
     const memberId = key.substring(0, underscoreIdx)
     const date = key.substring(underscoreIdx + 1)
+    // Validate date format to skip malformed keys
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
     if (!entry.tasks) continue
 
     for (const task of tasks) {
       const completed = !!entry.tasks[task.key]
       const contentKey = task.key + 'Content'
       const content = entry[contentKey] || null
-      if (!completed && !content) continue // skip empty entries
+      // Push if: completed, has content, or user explicitly interacted (key exists in tasks obj)
+      const hasInteracted = task.key in (entry.tasks || {})
+      if (!completed && !content && !hasInteracted) continue
       rows.push({
         household_id: householdId,
         member_id: memberId,
@@ -199,31 +249,37 @@ export function checkinsToLocalFormat(checkins) {
 }
 
 // Deep merge remote checkins into local data
-// Rule: completed=true wins (never lose a completion); content takes non-empty or remote
+// Rule: per-task last-write-wins using updated_at timestamps
 export function mergeCheckins(localData, remoteCheckins) {
-  const remote = checkinsToLocalFormat(remoteCheckins)
-  const merged = { ...localData }
-  for (const [key, remoteEntry] of Object.entries(remote)) {
-    const local = merged[key]
-    if (!local) {
-      // No local data for this key — take remote as-is
-      merged[key] = remoteEntry
-      continue
+  const merged = {}
+  // Deep copy local data
+  for (const [key, entry] of Object.entries(localData)) {
+    merged[key] = JSON.parse(JSON.stringify(entry))
+  }
+  // Merge each remote checkin record
+  for (const c of remoteCheckins) {
+    const key = `${c.member_id}_${c.date}`
+    if (!merged[key]) {
+      merged[key] = { tasks: {}, notes: { see: '', know: '', do: '' }, readContent: '', noteContent: '', _updatedAt: {} }
     }
-    // Deep merge tasks: true wins
-    const mergedTasks = { ...local.tasks }
-    for (const [tk, tv] of Object.entries(remoteEntry.tasks)) {
-      if (tv) mergedTasks[tk] = true
-    }
-    // Merge content fields: prefer non-empty, prefer remote if both exist
-    const mergedEntry = { ...local, tasks: mergedTasks }
-    for (const [field, value] of Object.entries(remoteEntry)) {
-      if (field === 'tasks' || field === 'notes') continue
-      if (value && typeof value === 'string' && value.trim()) {
-        mergedEntry[field] = value
+    const entry = merged[key]
+    if (!entry._updatedAt) entry._updatedAt = {}
+
+    const localTs = entry._updatedAt[c.task_key]
+    const remoteTs = c.updated_at
+
+    if (!localTs || remoteTs > localTs) {
+      // Remote is newer (or no local timestamp) — take remote values
+      entry.tasks[c.task_key] = c.completed
+      if (c.content != null) {
+        entry[c.task_key + 'Content'] = c.content
+      } else {
+        // Remote has no content — clear local if remote is newer
+        entry[c.task_key + 'Content'] = ''
       }
+      entry._updatedAt[c.task_key] = remoteTs
     }
-    merged[key] = mergedEntry
+    // else: local is newer, keep local values
   }
   return merged
 }
