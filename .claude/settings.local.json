@@ -8,6 +8,8 @@
       "WebFetch(domain:docs.anthropic.com)"
     ]
   },
-  "enableAllProjectMcpServers": false,
-  "enabledMcpjsonServers": []
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }
