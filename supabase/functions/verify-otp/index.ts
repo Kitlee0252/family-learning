@@ -107,6 +107,19 @@ Deno.serve(async (req: Request) => {
 
     console.log("Login success, user:", signInData?.user?.id);
 
+    // Step 3: Enforce max 5 device sessions — delete oldest if exceeded
+    const MAX_SESSIONS = 5;
+    const userId = signInData!.user!.id;
+    try {
+      await supabaseAdmin.rpc("cleanup_old_sessions", {
+        p_user_id: userId,
+        p_max_sessions: MAX_SESSIONS,
+      });
+    } catch (cleanupErr) {
+      // Non-blocking: session cleanup failure should not break login
+      console.warn("Session cleanup error (non-blocking):", cleanupErr);
+    }
+
     return new Response(
       JSON.stringify({ session: signInData!.session }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },

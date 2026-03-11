@@ -125,7 +125,7 @@ export function useAuth() {
 
   const signOut = useCallback(async () => {
     if (!supabase) return
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: 'local' })
   }, [])
 
   return {

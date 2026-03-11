@@ -21,7 +21,7 @@ export default function RankPage({ members, data, tasks, weekOffset, onChangeWee
   })
 
   scores.sort((a, b) => b.score - a.score)
-  const maxScore = Math.max(...scores.map(s => s.score), 1)
+  const totalPossible = 7 * tasks.length || 1
   const badges = ['🥇', '🥈', '🥉']
 
   return (
@@ -37,7 +37,7 @@ export default function RankPage({ members, data, tasks, weekOffset, onChangeWee
           const isFirst = i === 0
           const isLast = i === scores.length - 1 && scores.length > 1
           const badge = badges[i] || (isLast ? '🎁' : '')
-          const barWidth = (s.score / maxScore) * 100
+          const barWidth = (s.score / totalPossible) * 100
 
           return (
             <div
