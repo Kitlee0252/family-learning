@@ -8,6 +8,7 @@ import PersonPage from './components/PersonPage'
 import RankPage from './components/RankPage'
 import SettingsPage from './components/SettingsPage'
 import StreakPage from './components/StreakPage'
+import StatsPage from './components/StatsPage'
 import './App.css'
 
 function AppContent() {
@@ -15,7 +16,7 @@ function AppContent() {
   const calendarLayout = useMemo(() => {
     const params = new URLSearchParams(window.location.search)
     const layout = params.get('layout')
-    if (layout && ['a', 'b', 'c'].includes(layout)) return layout
+    if (layout && ['a', 'b', 'c', 'd'].includes(layout)) return layout
     return 'b' // default
   }, [])
 
@@ -70,15 +71,20 @@ function AppContent() {
     }
   }, [currentTab])
 
-  // Layout C inserts a streak tab between person tabs and rank tab
+  // Layout C inserts a streak tab; Layout D merges streak+rank into one "stats" tab
   const hasStreakTab = calendarLayout === 'c'
+  const hasStatsTab = calendarLayout === 'd'
   const streakTabIdx = hasStreakTab ? members.length : -1
-  const rankTabIdx = members.length + (hasStreakTab ? 1 : 0)
-  const settingsTabIdx = rankTabIdx + 1
+  const statsTabIdx = hasStatsTab ? members.length : -1
+  const rankTabIdx = hasStatsTab ? -1 : members.length + (hasStreakTab ? 1 : 0)
+  const settingsTabIdx = hasStatsTab
+    ? members.length + 1
+    : rankTabIdx + 1
 
   const isPerson = currentTab < members.length
   const isStreak = hasStreakTab && currentTab === streakTabIdx
-  const isRank = currentTab === rankTabIdx
+  const isStats = hasStatsTab && currentTab === statsTabIdx
+  const isRank = !hasStatsTab && currentTab === rankTabIdx
   const isSettings = currentTab === settingsTabIdx
 
   const member = isPerson ? members[currentTab] : null
@@ -128,6 +134,16 @@ function AppContent() {
           <StreakPage members={members} data={data} tasks={tasks} />
         )}
 
+        {isStats && (
+          <StatsPage
+            members={members}
+            data={data}
+            tasks={tasks}
+            weekOffset={weekOffset}
+            onChangeWeek={changeWeek}
+          />
+        )}
+
         {isRank && (
           <RankPage
             members={members}
@@ -159,6 +175,7 @@ function AppContent() {
         currentTab={currentTab}
         onTabChange={switchTab}
         hasStreakTab={hasStreakTab}
+        hasStatsTab={hasStatsTab}
       />
     </div>
   )
