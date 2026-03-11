@@ -38,20 +38,17 @@ export default function StreakCalendar({ memberId, data, tasks }) {
     }
   }
 
-  // Detect consecutive streaks for connected styling
+  // Detect consecutive check-ins for connected styling
   const isConsecutive = (index) => {
     const day = monthData[index]
     if (!day || !day.hasCheckin) return { left: false, right: false }
 
-    const row = Math.floor(index / 7)
     const col = index % 7
 
-    // Check left neighbor (same row)
     const leftIdx = index - 1
     const leftInRow = col > 0
     const leftCheckin = leftInRow && monthData[leftIdx]?.hasCheckin
 
-    // Check right neighbor (same row)
     const rightIdx = index + 1
     const rightInRow = col < 6
     const rightCheckin = rightInRow && monthData[rightIdx]?.hasCheckin

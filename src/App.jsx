@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from './hooks/useStore'
 import { useAuth } from './hooks/useAuth'
 import { formatDate } from './utils/date'
@@ -7,19 +7,10 @@ import TabBar from './components/TabBar'
 import PersonPage from './components/PersonPage'
 import RankPage from './components/RankPage'
 import SettingsPage from './components/SettingsPage'
-import StreakPage from './components/StreakPage'
-import StatsPage from './components/StatsPage'
 import './App.css'
 
 function AppContent() {
-  // Read ?size=N and ?layout=a|b|c from URL
-  const calendarLayout = useMemo(() => {
-    const params = new URLSearchParams(window.location.search)
-    const layout = params.get('layout')
-    if (layout && ['a', 'b', 'c', 'd'].includes(layout)) return layout
-    return 'b' // default
-  }, [])
-
+  // Read ?size=N from URL and apply to <html> for CSS preset switching
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const size = params.get('size')
@@ -71,21 +62,9 @@ function AppContent() {
     }
   }, [currentTab])
 
-  // Layout C inserts a streak tab; Layout D merges streak+rank into one "stats" tab
-  const hasStreakTab = calendarLayout === 'c'
-  const hasStatsTab = calendarLayout === 'd'
-  const streakTabIdx = hasStreakTab ? members.length : -1
-  const statsTabIdx = hasStatsTab ? members.length : -1
-  const rankTabIdx = hasStatsTab ? -1 : members.length + (hasStreakTab ? 1 : 0)
-  const settingsTabIdx = hasStatsTab
-    ? members.length + 1
-    : rankTabIdx + 1
-
   const isPerson = currentTab < members.length
-  const isStreak = hasStreakTab && currentTab === streakTabIdx
-  const isStats = hasStatsTab && currentTab === statsTabIdx
-  const isRank = !hasStatsTab && currentTab === rankTabIdx
-  const isSettings = currentTab === settingsTabIdx
+  const isRank = currentTab === members.length
+  const isSettings = currentTab === members.length + 1
 
   const member = isPerson ? members[currentTab] : null
   const personData = isPerson ? getPersonData(member.id, currentDay) : null
@@ -126,21 +105,6 @@ function AppContent() {
             onUpdateNote={handleUpdateNote}
             onUpdateTaskContent={handleUpdateTaskContent}
             data={data}
-            calendarLayout={calendarLayout}
-          />
-        )}
-
-        {isStreak && (
-          <StreakPage members={members} data={data} tasks={tasks} />
-        )}
-
-        {isStats && (
-          <StatsPage
-            members={members}
-            data={data}
-            tasks={tasks}
-            weekOffset={weekOffset}
-            onChangeWeek={changeWeek}
           />
         )}
 
@@ -174,8 +138,6 @@ function AppContent() {
         members={members}
         currentTab={currentTab}
         onTabChange={switchTab}
-        hasStreakTab={hasStreakTab}
-        hasStatsTab={hasStatsTab}
       />
     </div>
   )

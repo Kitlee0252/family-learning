@@ -16,7 +16,6 @@ export function getStreak(memberId, data) {
   const todayHasCheckin = todayEntry?.tasks && Object.values(todayEntry.tasks).some(Boolean)
 
   if (!todayHasCheckin) {
-    // Start from yesterday
     d.setDate(d.getDate() - 1)
   }
 
@@ -34,19 +33,18 @@ export function getStreak(memberId, data) {
 
 /**
  * Get month calendar data for a member.
- * Returns array of { date, dayNum, hasCheckin, allDone, isToday, isFuture }
+ * Returns array of { date, dayNum, hasCheckin, allDone, isToday, isFuture } with null padding.
  */
 export function getMonthData(memberId, data, tasks, year, month) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
   const firstDay = new Date(year, month, 1)
-  const startDow = firstDay.getDay() // 0=Sun
+  const startDow = firstDay.getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
 
   const days = []
 
-  // Padding for days before the 1st
   for (let i = 0; i < startDow; i++) {
     days.push(null)
   }
@@ -80,7 +78,7 @@ export function getMonthData(memberId, data, tasks, year, month) {
 }
 
 /**
- * Get month stats
+ * Get month stats.
  */
 export function getMonthStats(monthData) {
   const validDays = monthData.filter(d => d !== null && !d.isFuture)

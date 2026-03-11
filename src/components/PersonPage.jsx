@@ -11,7 +11,7 @@ export default function PersonPage({
   member, currentDay, personData, expandedTask, tasks,
   onChangeDay, onSetExpandedTask, onToggleTask,
   onUpdateNote, onUpdateTaskContent,
-  data, calendarLayout,
+  data,
 }) {
   const wrapRef = useRef(null)
   const showToast = useToast()
@@ -23,10 +23,6 @@ export default function PersonPage({
   const pd = personData
   const doneCount = tasks.reduce((c, t) => c + (pd.tasks[t.key] ? 1 : 0), 0)
 
-  const calendar = (calendarLayout === 'a' || calendarLayout === 'b') ? (
-    <StreakCalendar memberId={member.id} data={data} tasks={tasks} />
-  ) : null
-
   return (
     <div ref={wrapRef}>
       <DayNav
@@ -34,8 +30,6 @@ export default function PersonPage({
         onPrev={() => onChangeDay(-1)}
         onNext={() => onChangeDay(1)}
       />
-
-      {calendarLayout === 'a' && calendar}
 
       <div className={styles.card}>
         <ProgressRing done={doneCount} total={tasks.length} memberName={member.name} />
@@ -70,7 +64,7 @@ export default function PersonPage({
         </div>
       </div>
 
-      {calendarLayout === 'b' && calendar}
+      <StreakCalendar memberId={member.id} data={data} tasks={tasks} />
     </div>
   )
 }

@@ -144,7 +144,7 @@
   font-weight: 700;
 }
 
-/* Connected streak styling — remove border-radius on touching sides */
+/* Connected streak styling */
 .connLeft {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
