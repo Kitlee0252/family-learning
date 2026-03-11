@@ -10,7 +10,7 @@ export default function StreakCalendar({ memberId, data, tasks }) {
   const [viewYear, setViewYear] = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
 
-  const streak = useMemo(() => getStreak(memberId, data), [memberId, data])
+  const streak = useMemo(() => getStreak(memberId, data, tasks), [memberId, data, tasks])
   const monthData = useMemo(
     () => getMonthData(memberId, data, tasks, viewYear, viewMonth),
     [memberId, data, tasks, viewYear, viewMonth]

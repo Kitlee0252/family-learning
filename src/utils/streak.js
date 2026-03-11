@@ -1,29 +1,39 @@
 import { dateKey } from './date'
 
 /**
+ * Check if a day has at least 1 current task completed.
+ */
+function dayHasCheckin(entry, tasks) {
+  if (!entry?.tasks) return false
+  return tasks.some(t => entry.tasks[t.key])
+}
+
+/**
+ * Count completed tasks for a day, filtered by current task list.
+ */
+function countCompleted(entry, tasks) {
+  if (!entry?.tasks) return 0
+  return tasks.filter(t => entry.tasks[t.key]).length
+}
+
+/**
  * Calculate current streak for a member.
- * A day counts as "checked in" if at least 1 task is completed.
+ * A day counts as "checked in" if at least 1 current task is completed.
  * If today has no check-in yet, start counting from yesterday.
  */
-export function getStreak(memberId, data) {
+export function getStreak(memberId, data, tasks) {
   let streak = 0
   const d = new Date()
   d.setHours(0, 0, 0, 0)
 
-  // Check if today has any check-in
   const todayKey = `${memberId}_${dateKey(d)}`
-  const todayEntry = data[todayKey]
-  const todayHasCheckin = todayEntry?.tasks && Object.values(todayEntry.tasks).some(Boolean)
-
-  if (!todayHasCheckin) {
+  if (!dayHasCheckin(data[todayKey], tasks)) {
     d.setDate(d.getDate() - 1)
   }
 
   while (true) {
     const key = `${memberId}_${dateKey(d)}`
-    const entry = data[key]
-    const hasCheckin = entry?.tasks && Object.values(entry.tasks).some(Boolean)
-    if (!hasCheckin) break
+    if (!dayHasCheckin(data[key], tasks)) break
     streak++
     d.setDate(d.getDate() - 1)
   }
@@ -33,7 +43,7 @@ export function getStreak(memberId, data) {
 
 /**
  * Get month calendar data for a member.
- * Returns array of { date, dayNum, hasCheckin, allDone, isToday, isFuture } with null padding.
+ * Counts only tasks in the current task list.
  */
 export function getMonthData(memberId, data, tasks, year, month) {
   const today = new Date()
@@ -55,9 +65,7 @@ export function getMonthData(memberId, data, tasks, year, month) {
     const key = `${memberId}_${dateKey(date)}`
     const entry = data[key]
 
-    const completedTasks = entry?.tasks
-      ? Object.values(entry.tasks).filter(Boolean).length
-      : 0
+    const completedTasks = countCompleted(entry, tasks)
     const totalTasks = tasks.length
     const hasCheckin = completedTasks > 0
     const allDone = totalTasks > 0 && completedTasks === totalTasks
