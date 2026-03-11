@@ -14,7 +14,7 @@ export default function RankPage({ members, data, tasks, weekOffset, onChangeWee
       const key = dataKey(member.id, d)
       const pd = data[key]
       if (pd && pd.tasks) {
-        total += Object.values(pd.tasks).filter(Boolean).length
+        total += tasks.filter(t => !!pd.tasks[t.key]).length
       }
     })
     return { name: member.name, emoji: member.emoji, score: total }

@@ -1,0 +1,167 @@
+.container {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+
+/* Streak badge */
+.streakRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.fireIcon {
+  font-size: 28px;
+}
+
+.streakNum {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.streakLabel {
+  font-size: 14px;
+  color: var(--text-light);
+  margin-left: 2px;
+}
+
+/* Month header */
+.monthHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.monthTitle {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.monthBtn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--bg);
+  border-radius: 50%;
+  font-size: 18px;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.monthBtn.disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Stats row */
+.statsRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.stat {
+  flex: 1;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.statNum {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.statLabel {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* Calendar grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px 0;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-light);
+  padding: 4px 0 8px;
+  font-weight: 500;
+}
+
+/* Day cell */
+.cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.dayNum {
+  position: relative;
+  z-index: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Checked in (at least 1 task) */
+.checkedIn {
+  background: #ffecd2;
+}
+
+.checkedIn .dayNum {
+  color: #c85a1a;
+  font-weight: 700;
+}
+
+/* All tasks done */
+.allDone {
+  background: var(--accent);
+}
+
+.allDone .dayNum {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Connected streak styling */
+.connLeft {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.connRight {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Today indicator */
+.today {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Future days */
+.future .dayNum {
+  color: var(--border);
+}

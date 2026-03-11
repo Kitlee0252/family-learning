@@ -4,12 +4,14 @@ import { useToast } from './Toast'
 import DayNav from './DayNav'
 import ProgressRing from './ProgressRing'
 import CheckItem from './CheckItem'
+import StreakCalendar from './StreakCalendar'
 import styles from './PersonPage.module.css'
 
 export default function PersonPage({
   member, currentDay, personData, expandedTask, tasks,
   onChangeDay, onSetExpandedTask, onToggleTask,
   onUpdateNote, onUpdateTaskContent,
+  data,
 }) {
   const wrapRef = useRef(null)
   const showToast = useToast()
@@ -61,6 +63,8 @@ export default function PersonPage({
           })}
         </div>
       </div>
+
+      <StreakCalendar memberId={member.id} data={data} tasks={tasks} />
     </div>
   )
 }

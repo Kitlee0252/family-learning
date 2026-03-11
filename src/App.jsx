@@ -104,6 +104,7 @@ function AppContent() {
             onToggleTask={handleToggleTask}
             onUpdateNote={handleUpdateNote}
             onUpdateTaskContent={handleUpdateTaskContent}
+            data={data}
           />
         )}
 
