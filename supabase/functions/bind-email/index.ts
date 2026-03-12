@@ -45,14 +45,13 @@ Deno.serve(async (req: Request) => {
 
     // Step 1: Create or find email user
     let emailUserId: string;
-    let existingUser: { id: string; email_confirmed_at?: string | null } | null = null;
 
     // Try to create user first; if already exists, fetch by listing with email filter
     try {
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
-        email_confirm: false,
+        email_confirm: true,
       });
       if (createError) {
         // User likely already exists — try to find them
@@ -63,7 +62,6 @@ Deno.serve(async (req: Request) => {
         });
         const found = listData?.users?.[0];
         if (found) {
-          existingUser = found;
           emailUserId = found.id;
         } else {
           return new Response(
@@ -102,16 +100,7 @@ Deno.serve(async (req: Request) => {
         .eq("user_id", emailUserId);
     }
 
-    // Step 3: Generate verification link (triggers confirmation email)
-    if (!existingUser || !existingUser.email_confirmed_at) {
-      await supabaseAdmin.auth.admin.generateLink({
-        type: "signup",
-        email,
-        password,
-      });
-    }
-
-    // Step 4: Insert into household_users
+    // Step 3: Insert into household_users
     const { error: insertError } = await supabaseAdmin
       .from("household_users")
       .upsert(

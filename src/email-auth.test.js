@@ -141,9 +141,9 @@ describe('Edge Function: bind-email', () => {
     expect(code).toMatch(/confirmed/)
   })
 
-  it('should generate verification link', () => {
+  it('should auto-confirm email on creation', () => {
     const code = readFileSync(resolve(root, 'supabase/functions/bind-email/index.ts'), 'utf-8')
-    expect(code).toMatch(/generateLink/)
+    expect(code).toMatch(/email_confirm:\s*true/)
   })
 
   it('should use CORS headers', () => {
