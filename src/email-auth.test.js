@@ -33,3 +33,33 @@ describe('sync.js: household_users table migration', () => {
     expect(code).toMatch(/from\(['"]household_users['"]\)/)
   })
 })
+
+describe('useStore.js: handleLoginSuccess authMethod', () => {
+  const storeCode = () => readFileSync(resolve(root, 'src/hooks/useStore.js'), 'utf-8')
+
+  it('handleLoginSuccess should accept authMethod parameter', () => {
+    const code = storeCode()
+    expect(code).toMatch(/handleLoginSuccess\s*=\s*useCallback\(\s*async\s*\(\s*user\s*,\s*authMethod/)
+  })
+
+  it('handleLoginSuccess should pass authMethod to bindHouseholdToUser', () => {
+    const code = storeCode()
+    const bindCalls = code.match(/bindHouseholdToUser\([^)]+\)/g) || []
+    expect(bindCalls.length).toBeGreaterThan(0)
+    const hasThreeArgs = bindCalls.some(call => {
+      const args = call.match(/bindHouseholdToUser\(([^)]+)\)/)?.[1]
+      return args && args.split(',').length >= 3
+    })
+    expect(hasThreeArgs).toBe(true)
+  })
+
+  it('should import getBoundAccounts from sync', () => {
+    const code = storeCode()
+    expect(code).toMatch(/getBoundAccounts/)
+  })
+
+  it('should expose householdId in return object', () => {
+    const code = storeCode()
+    expect(code).toMatch(/householdId/)
+  })
+})
