@@ -8,7 +8,7 @@ import {
   pushMembers, pushTasks, pushCheckin, pushAllCheckins,
   pullAll, mergeCheckins,
   bindHouseholdToUser, findUserHousehold, switchHousehold,
-  getFailedQueue,
+  getFailedQueue, getBoundAccounts,
 } from '../lib/sync'
 
 function loadJSON(key, fallback) {
@@ -267,7 +267,7 @@ export function useStore() {
     })
   }, [])
 
-  const handleLoginSuccess = useCallback(async (user) => {
+  const handleLoginSuccess = useCallback(async (user, authMethod = 'phone') => {
     setSyncEnabled(true)
     setSyncStatus('syncing')
     try {
@@ -277,7 +277,7 @@ export function useStore() {
         // Path A: Brand new user — push local to cloud
         const hid = householdId.current
         await ensureHousehold(hid)
-        await bindHouseholdToUser(hid, user.id)
+        await bindHouseholdToUser(hid, user.id, authMethod)
         await pushMembers(hid, membersRef.current)
         await pushTasks(hid, tasksRef.current)
         await pushAllCheckins(hid, dataRef.current, tasksRef.current)
@@ -369,6 +369,7 @@ export function useStore() {
 
   return {
     members, data, tasks, currentTab, currentDay, weekOffset, expandedTask, syncStatus,
+    householdId: householdId.current,
     getPersonData, toggleTask, updateNote, updateTaskContent,
     changeDay, changeWeek, switchTab, setExpandedTask,
     addMember, removeMember, updateMemberName, updateMemberEmoji,

@@ -377,3 +377,124 @@
   border-color: #e55;
   color: #e55;
 }
+
+/* Login method tabs */
+.loginTabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+}
+
+.loginTab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: var(--bg);
+  color: var(--text-light);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.loginTabActive {
+  background: var(--accent);
+  color: #fff;
+}
+
+.emailInput {
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  font-size: var(--check-label);
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.emailInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.loginActions {
+  display: flex;
+  gap: 10px;
+}
+
+.loginActions .btnLogin {
+  flex: 1;
+}
+
+.btnSecondary {
+  flex: 1;
+  padding: 12px;
+  border: 1.5px solid var(--accent);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--accent);
+  font-size: var(--btn-font);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnSecondary:active {
+  transform: scale(0.97);
+}
+
+.btnSecondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loginHint {
+  font-size: 12px;
+  color: var(--text-light);
+  text-align: center;
+}
+
+.loginSuccess {
+  font-size: 13px;
+  color: var(--green);
+  text-align: center;
+  padding: 8px;
+}
+
+/* Binding section */
+.boundList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.btnBind {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border: 1.5px dashed var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-light);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+  transition: all 0.15s;
+}
+
+.btnBind:active {
+  border-color: var(--accent);
+  color: var(--accent);
+}

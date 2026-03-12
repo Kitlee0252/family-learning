@@ -123,6 +123,72 @@ export function useAuth() {
     }
   }, [getFunctionsUrl])
 
+  const signUpWithEmail = useCallback(async (email, password) => {
+    if (!supabase) return { error: { message: '云端未连接' } }
+    const { data, error } = await supabase.auth.signUp({ email, password })
+    if (error) return { error: { message: error.message } }
+    return { data, error: null }
+  }, [])
+
+  const signInWithEmail = useCallback(async (email, password) => {
+    if (!supabase) return { error: { message: '云端未连接' } }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) return { error: { message: error.message } }
+    return { data, error: null }
+  }, [])
+
+  const resendVerification = useCallback(async (email) => {
+    if (!supabase) return { error: { message: '云端未连接' } }
+    const { error } = await supabase.auth.resend({ type: 'signup', email })
+    if (error) return { error: { message: error.message } }
+    return { error: null }
+  }, [])
+
+  const bindEmail = useCallback(async (email, password, householdId, confirmed = false) => {
+    const url = getFunctionsUrl('bind-email')
+    if (!url) return { error: { message: '云端未连接' } }
+    try {
+      const session = (await supabase.auth.getSession()).data.session
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ email, password, household_id: householdId, confirmed }),
+      })
+      const data = await res.json()
+      if (data.conflict) return { conflict: true, warning: data.warning }
+      if (data.success) return { success: true, error: null }
+      return { error: { message: data.error || '绑定失败' } }
+    } catch (err) {
+      return { error: { message: '网络错误' } }
+    }
+  }, [getFunctionsUrl])
+
+  const bindPhone = useCallback(async (phone, code, householdId, confirmed = false) => {
+    const url = getFunctionsUrl('bind-phone')
+    if (!url) return { error: { message: '云端未连接' } }
+    try {
+      const digits = phone.replace(/^\+86/, '').replace(/\D/g, '')
+      const session = (await supabase.auth.getSession()).data.session
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ phone: digits, code, household_id: householdId, confirmed }),
+      })
+      const data = await res.json()
+      if (data.conflict) return { conflict: true, warning: data.warning }
+      if (data.success) return { success: true, error: null }
+      return { error: { message: data.error || '绑定失败' } }
+    } catch (err) {
+      return { error: { message: '网络错误' } }
+    }
+  }, [getFunctionsUrl])
+
   const signOut = useCallback(async () => {
     if (!supabase) return
     await supabase.auth.signOut({ scope: 'local' })
@@ -136,6 +202,11 @@ export function useAuth() {
     cooldown,
     sendOtp,
     verifyOtp,
+    signUpWithEmail,
+    signInWithEmail,
+    resendVerification,
+    bindEmail,
+    bindPhone,
     signOut,
   }
 }

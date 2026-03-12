@@ -1,21 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { callAliyunApi } from "../_shared/aliyun-signer.ts";
+import { derivePassword } from "../_shared/derive-password.ts";
 import { corsHeaders, corsResponse } from "../_shared/cors.ts";
 
-const encoder = new TextEncoder();
 const ALIYUN_AK_ID = Deno.env.get("ALIBABA_CLOUD_ACCESS_KEY_ID")!;
 const ALIYUN_AK_SECRET = Deno.env.get("ALIBABA_CLOUD_ACCESS_KEY_SECRET")!;
-
-async function derivePassword(phone: string): Promise<string> {
-  const secret = Deno.env.get("OTP_AUTH_SECRET") || "fallback-dev-secret-change-me";
-  const key = await crypto.subtle.importKey(
-    "raw", encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(phone));
-  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return corsResponse();
