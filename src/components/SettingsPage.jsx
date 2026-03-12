@@ -29,6 +29,14 @@ function EmojiPicker({ current, onSelect, onClose, emojis = TASK_EMOJIS }) {
 }
 
 function TaskRow({ task, onRemove, onUpdate, pickerOpen, onTogglePicker }) {
+  const [confirming, setConfirming] = useState(false)
+
+  useEffect(() => {
+    if (!confirming) return
+    const timer = setTimeout(() => setConfirming(false), 3000)
+    return () => clearTimeout(timer)
+  }, [confirming])
+
   return (
     <div className={styles.taskRowWrap}>
       <div className={styles.taskRow}>
@@ -45,9 +53,15 @@ function TaskRow({ task, onRemove, onUpdate, pickerOpen, onTogglePicker }) {
           placeholder="项目名称"
           onChange={(e) => onUpdate(task.key, 'label', e.target.value)}
         />
-        <button className={styles.btnDel} onClick={() => onRemove(task.key)}>
-          ✕
-        </button>
+        {confirming ? (
+          <button className={styles.btnDelConfirm} onClick={() => { setConfirming(false); onRemove(task.key) }}>
+            删除
+          </button>
+        ) : (
+          <button className={styles.btnDel} onClick={() => setConfirming(true)}>
+            ✕
+          </button>
+        )}
       </div>
       {pickerOpen && (
         <EmojiPicker
@@ -509,6 +523,13 @@ export default function SettingsPage({
 }) {
   const [emojiPickerFor, setEmojiPickerFor] = useState(null)
   const [memberEmojiPickerFor, setMemberEmojiPickerFor] = useState(null)
+  const [confirmingMemberId, setConfirmingMemberId] = useState(null)
+
+  useEffect(() => {
+    if (confirmingMemberId === null) return
+    const timer = setTimeout(() => setConfirmingMemberId(null), 3000)
+    return () => clearTimeout(timer)
+  }, [confirmingMemberId])
 
   const togglePicker = (taskKey) => {
     setEmojiPickerFor(prev => prev === taskKey ? null : taskKey)
@@ -544,12 +565,21 @@ export default function SettingsPage({
                   placeholder="姓名"
                   onChange={(e) => onUpdateMemberName(i, e.target.value)}
                 />
-                <button
-                  className={styles.btnDel}
-                  onClick={() => onRemoveMember(i)}
-                >
-                  ✕
-                </button>
+                {confirmingMemberId === m.id ? (
+                  <button
+                    className={styles.btnDelConfirm}
+                    onClick={() => { setConfirmingMemberId(null); onRemoveMember(i) }}
+                  >
+                    删除
+                  </button>
+                ) : (
+                  <button
+                    className={styles.btnDel}
+                    onClick={() => setConfirmingMemberId(m.id)}
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
               {memberEmojiPickerFor === i && (
                 <EmojiPicker
