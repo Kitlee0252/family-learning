@@ -354,6 +354,22 @@ function LoginCard({ user, loading, auth, householdId }) {
     }
   }
 
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError('请先输入邮箱地址')
+      return
+    }
+    setError('')
+    setEmailLoading(true)
+    const { error: err } = await auth.resetPassword(email)
+    setEmailLoading(false)
+    if (err) {
+      setError(err.message)
+    } else {
+      setStep('resetSent')
+    }
+  }
+
   return (
     <div className={styles.card}>
       <div className={styles.cardTitle}>👤 账户</div>
@@ -460,7 +476,23 @@ function LoginCard({ user, loading, auth, householdId }) {
               {emailLoading ? '处理中...' : '登录'}
             </button>
           </div>
-          <div className={styles.loginHint}>新用户请先注册</div>
+          <div className={styles.loginHintRow}>
+            <span className={styles.loginHint}>新用户请先注册</span>
+            <button className={styles.btnForgot} onClick={handleResetPassword} disabled={emailLoading}>
+              忘记密码
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loginMethod === 'email' && step === 'resetSent' && (
+        <div className={styles.loginForm}>
+          <div className={styles.loginSuccess}>
+            重置邮件已发送至 {email}，请查收
+          </div>
+          <button className={styles.btnLogin} onClick={() => setStep('input')}>
+            返回登录
+          </button>
         </div>
       )}
 

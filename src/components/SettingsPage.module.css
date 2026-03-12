@@ -456,10 +456,24 @@
   cursor: not-allowed;
 }
 
+.loginHintRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .loginHint {
   font-size: 12px;
   color: var(--text-light);
-  text-align: center;
+}
+
+.btnForgot {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
 }
 
 .loginSuccess {

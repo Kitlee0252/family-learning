@@ -189,6 +189,13 @@ export function useAuth() {
     }
   }, [getFunctionsUrl])
 
+  const resetPassword = useCallback(async (email) => {
+    if (!supabase) return { error: { message: '云端未连接' } }
+    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    if (error) return { error: { message: error.message } }
+    return { error: null }
+  }, [])
+
   const signOut = useCallback(async () => {
     if (!supabase) return
     await supabase.auth.signOut({ scope: 'local' })
@@ -207,6 +214,7 @@ export function useAuth() {
     resendVerification,
     bindEmail,
     bindPhone,
+    resetPassword,
     signOut,
   }
 }
