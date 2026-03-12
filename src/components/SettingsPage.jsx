@@ -79,14 +79,14 @@ function BindEmailForm({ auth, householdId }) {
       }
     } else if (result.success) {
       setSuccess(true)
-      showToast('绑定成功，请查收验证邮件')
+      showToast('邮箱绑定成功')
     } else if (result.error) {
       setError(result.error.message)
     }
   }
 
   if (success) {
-    return <div className={styles.loginSuccess}>验证邮件已发送至 {email}</div>
+    return <div className={styles.loginSuccess}>邮箱 {email} 绑定成功 ✓</div>
   }
 
   if (!showForm) {
@@ -308,11 +308,18 @@ function LoginCard({ user, loading, auth, householdId }) {
     setError('')
     setEmailLoading(true)
     const { error: err } = await auth.signUpWithEmail(email, password)
-    setEmailLoading(false)
     if (err) {
+      setEmailLoading(false)
       setError(err.message)
+      return
+    }
+    // autoconfirm enabled — sign in immediately after signup
+    const { error: signInErr } = await auth.signInWithEmail(email, password)
+    setEmailLoading(false)
+    if (signInErr) {
+      setError(signInErr.message)
     } else {
-      setStep('emailSent')
+      showToast('注册成功')
     }
   }
 
@@ -322,25 +329,9 @@ function LoginCard({ user, loading, auth, householdId }) {
     const { error: err } = await auth.signInWithEmail(email, password)
     setEmailLoading(false)
     if (err) {
-      if (err.message.includes('Email not confirmed') || err.message.includes('not confirmed')) {
-        setStep('unconfirmed')
-      } else {
-        setError(err.message)
-      }
-    } else {
-      showToast('登录成功')
-    }
-  }
-
-  const handleResendVerification = async () => {
-    setError('')
-    setEmailLoading(true)
-    const { error: err } = await auth.resendVerification(email)
-    setEmailLoading(false)
-    if (err) {
       setError(err.message)
     } else {
-      showToast('验证邮件已重新发送')
+      showToast('登录成功')
     }
   }
 
@@ -450,40 +441,7 @@ function LoginCard({ user, loading, auth, householdId }) {
               {emailLoading ? '处理中...' : '登录'}
             </button>
           </div>
-          <div className={styles.loginHint}>注册后需验证邮箱</div>
-        </div>
-      )}
-
-      {loginMethod === 'email' && step === 'emailSent' && (
-        <div className={styles.loginForm}>
-          <div className={styles.loginSuccess}>
-            验证邮件已发送，请查收 {email}
-          </div>
-          <button
-            className={styles.btnLogin}
-            onClick={() => setStep('input')}
-          >
-            返回登录
-          </button>
-        </div>
-      )}
-
-      {loginMethod === 'email' && step === 'unconfirmed' && (
-        <div className={styles.loginForm}>
-          <div className={styles.loginError}>请先验证邮箱，查看收件箱中的确认链接</div>
-          <button
-            className={styles.btnLogin}
-            disabled={emailLoading}
-            onClick={handleResendVerification}
-          >
-            {emailLoading ? '发送中...' : '重新发送验证邮件'}
-          </button>
-          <button
-            className={styles.btnBack}
-            onClick={() => setStep('input')}
-          >
-            返回
-          </button>
+          <div className={styles.loginHint}>新用户请先注册</div>
         </div>
       )}
 
