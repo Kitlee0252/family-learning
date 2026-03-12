@@ -18,7 +18,7 @@ describe('sync.js: household_users table migration', () => {
 
   it('bindHouseholdToUser should accept authMethod parameter', () => {
     const code = syncCode()
-    expect(code).toMatch(/bindHouseholdToUser\s*\(\s*householdId\s*,\s*userId\s*,\s*authMethod\s*\)/)
+    expect(code).toMatch(/bindHouseholdToUser\s*\(\s*householdId\s*,\s*userId\s*,\s*authMethod/)
   })
 
   it('bindHouseholdToUser should upsert into household_users', () => {

@@ -200,7 +200,7 @@ export async function pullAll(householdId) {
 }
 
 // Bind a user to a household (upsert into household_users)
-export async function bindHouseholdToUser(householdId, userId, authMethod) {
+export async function bindHouseholdToUser(householdId, userId, authMethod = 'phone') {
   if (!supabase) return
   const { error } = await supabase
     .from('household_users')
