@@ -107,6 +107,7 @@
   max-height: 200px;
   opacity: 1;
   margin-top: 10px;
+  overflow: visible;
 }
 
 .openNote {
@@ -176,6 +177,8 @@
   line-height: 1.5;
   -webkit-appearance: none;
   appearance: none;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .textareaNote {
