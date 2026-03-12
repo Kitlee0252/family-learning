@@ -199,22 +199,38 @@ export async function pullAll(householdId) {
   }
 }
 
-// Bind a household to a user (after login)
-export async function bindHouseholdToUser(householdId, userId) {
+// Bind a user to a household (upsert into household_users)
+export async function bindHouseholdToUser(householdId, userId, authMethod) {
   if (!supabase) return
   const { error } = await supabase
-    .from('households')
-    .update({ user_id: userId })
-    .eq('id', householdId)
+    .from('household_users')
+    .upsert(
+      { household_id: householdId, user_id: userId, auth_method: authMethod },
+      { onConflict: 'user_id' }
+    )
   if (error) console.warn('bindHouseholdToUser error:', error)
+}
+
+// Get all bound accounts for a household
+export async function getBoundAccounts(householdId) {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('household_users')
+    .select('user_id, auth_method')
+    .eq('household_id', householdId)
+  if (error) {
+    console.warn('getBoundAccounts error:', error)
+    return []
+  }
+  return data || []
 }
 
 // Find household belonging to a user
 export async function findUserHousehold(userId) {
   if (!supabase) return null
   const { data, error } = await supabase
-    .from('households')
-    .select('id')
+    .from('household_users')
+    .select('household_id')
     .eq('user_id', userId)
     .limit(1)
     .maybeSingle()
@@ -222,7 +238,7 @@ export async function findUserHousehold(userId) {
     console.warn('findUserHousehold error:', error)
     return null
   }
-  return data?.id ?? null
+  return data?.household_id ?? null
 }
 
 // Switch to a different household (update localStorage)
