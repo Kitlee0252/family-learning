@@ -24,6 +24,7 @@ function AppContent() {
   const store = useStore()
   const {
     members, data, tasks, currentTab, currentDay, weekOffset, expandedTask,
+    householdId,
     getPersonData, toggleTask, updateNote, updateTaskContent,
     changeDay, changeWeek, switchTab, setExpandedTask,
     addMember, removeMember, updateMemberName, updateMemberEmoji,
@@ -38,7 +39,8 @@ function AppContent() {
     if (auth.loading) return
     if (auth.user && !hasSynced.current) {
       hasSynced.current = true
-      handleLoginSuccess(auth.user)
+      const authMethod = auth.user.email && !auth.user.phone ? 'email' : 'phone'
+      handleLoginSuccess(auth.user, authMethod)
     }
     if (!auth.user) {
       hasSynced.current = false
@@ -130,6 +132,7 @@ function AppContent() {
             onRemoveTask={removeTask}
             onUpdateTask={updateTask}
             auth={auth}
+            householdId={householdId}
           />
         )}
       </div>

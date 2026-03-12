@@ -59,30 +59,223 @@ function TaskRow({ task, onRemove, onUpdate, pickerOpen, onTogglePicker }) {
   )
 }
 
-function LoginCard({ user, loading, auth }) {
+function BindEmailForm({ auth, householdId }) {
+  const [showForm, setShowForm] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const showToast = useToast()
+
+  const handleBind = async (confirmed = false) => {
+    setError('')
+    setLoading(true)
+    const result = await auth.bindEmail(email, password, householdId, confirmed)
+    setLoading(false)
+    if (result.conflict) {
+      if (confirm(result.warning + '，确认绑定？')) {
+        handleBind(true)
+      }
+    } else if (result.success) {
+      setSuccess(true)
+      showToast('绑定成功，请查收验证邮件')
+    } else if (result.error) {
+      setError(result.error.message)
+    }
+  }
+
+  if (success) {
+    return <div className={styles.loginSuccess}>验证邮件已发送至 {email}</div>
+  }
+
+  if (!showForm) {
+    return (
+      <button className={styles.btnBind} onClick={() => setShowForm(true)}>
+        绑定邮箱
+      </button>
+    )
+  }
+
+  return (
+    <div className={styles.boundList}>
+      <div className={styles.loginForm}>
+        <input
+          className={styles.emailInput}
+          type="email"
+          placeholder="邮箱地址"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          className={styles.emailInput}
+          type="password"
+          placeholder="设置密码（至少6位）"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <div className={styles.loginActions}>
+          <button className={styles.btnBack} onClick={() => setShowForm(false)}>
+            取消
+          </button>
+          <button
+            className={styles.btnLogin}
+            disabled={!email || password.length < 6 || loading}
+            onClick={() => handleBind(false)}
+          >
+            {loading ? '绑定中...' : '确认绑定'}
+          </button>
+        </div>
+      </div>
+      {error && <div className={styles.loginError}>{error}</div>}
+    </div>
+  )
+}
+
+function BindPhoneForm({ auth, householdId }) {
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
-  const [step, setStep] = useState('phone') // phone | otp
+  const [step, setStep] = useState('idle') // idle | phone | otp
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const showToast = useToast()
+
+  const handleSendOtp = async () => {
+    setError('')
+    const fullPhone = phone.startsWith('+') ? phone : '+86' + phone
+    const { error: err } = await auth.sendOtp(fullPhone)
+    if (err) {
+      setError(err.message)
+    } else {
+      setStep('otp')
+    }
+  }
+
+  const handleBind = async (confirmed = false) => {
+    setError('')
+    setLoading(true)
+    const result = await auth.bindPhone(phone, otp, householdId, confirmed)
+    setLoading(false)
+    if (result.conflict) {
+      if (confirm(result.warning + '，确认绑定？')) {
+        handleBind(true)
+      }
+    } else if (result.success) {
+      showToast('手机号绑定成功')
+      setStep('idle')
+    } else if (result.error) {
+      setError(result.error.message)
+    }
+  }
+
+  if (step === 'idle') {
+    return (
+      <button className={styles.btnBind} onClick={() => setStep('phone')}>
+        绑定手机号
+      </button>
+    )
+  }
+
+  return (
+    <div className={styles.boundList}>
+      {step === 'phone' && (
+        <div className={styles.loginForm}>
+          <div className={styles.phoneRow}>
+            <span className={styles.phonePrefix}>+86</span>
+            <input
+              className={styles.phoneInput}
+              type="tel"
+              placeholder="手机号"
+              value={phone}
+              maxLength={11}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+            />
+          </div>
+          <div className={styles.loginActions}>
+            <button className={styles.btnBack} onClick={() => setStep('idle')}>
+              取消
+            </button>
+            <button
+              className={styles.btnLogin}
+              disabled={phone.length < 11 || auth.otpSending || auth.cooldown > 0}
+              onClick={handleSendOtp}
+            >
+              {auth.otpSending ? '发送中...' : auth.cooldown > 0 ? `${auth.cooldown}s 后重发` : '发送验证码'}
+            </button>
+          </div>
+        </div>
+      )}
+      {step === 'otp' && (
+        <div className={styles.loginForm}>
+          <input
+            className={styles.otpInput}
+            type="tel"
+            placeholder="输入验证码"
+            value={otp}
+            maxLength={6}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+          />
+          <div className={styles.loginActions}>
+            <button className={styles.btnBack} onClick={() => { setStep('phone'); setOtp('') }}>
+              返回
+            </button>
+            <button
+              className={styles.btnLogin}
+              disabled={otp.length < 6 || loading}
+              onClick={() => handleBind(false)}
+            >
+              {loading ? '绑定中...' : '确认绑定'}
+            </button>
+          </div>
+        </div>
+      )}
+      {error && <div className={styles.loginError}>{error}</div>}
+    </div>
+  )
+}
+
+function LoginCard({ user, loading, auth, householdId }) {
+  const [loginMethod, setLoginMethod] = useState('phone') // phone | email
+  const [phone, setPhone] = useState('')
+  const [otp, setOtp] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [step, setStep] = useState('input') // input | otp | emailSent | unconfirmed
+  const [error, setError] = useState('')
+  const [emailLoading, setEmailLoading] = useState(false)
   const showToast = useToast()
 
   if (loading) return null
 
   if (user) {
     const phoneNum = user.phone || ''
+    const userEmail = user.email || ''
     const masked = phoneNum.length > 4
       ? phoneNum.slice(0, phoneNum.length - 8) + '****' + phoneNum.slice(-4)
       : phoneNum
+    const isPhoneUser = !!phoneNum
+    const isEmailUser = !!userEmail
+
     return (
       <div className={styles.card}>
         <div className={styles.cardTitle}>👤 账户</div>
         <div className={styles.loggedInRow}>
-          <span className={styles.phoneDisplay}>📱 {masked}</span>
+          <span className={styles.phoneDisplay}>
+            {isPhoneUser ? `📱 ${masked}` : `📧 ${userEmail}`}
+          </span>
           <button className={styles.btnLogout} onClick={async () => {
             await auth.signOut()
             showToast('已退出登录')
           }}>退出</button>
         </div>
+
+        {/* Binding section */}
+        {isPhoneUser && !isEmailUser && (
+          <BindEmailForm auth={auth} householdId={householdId} />
+        )}
+        {isEmailUser && !isPhoneUser && (
+          <BindPhoneForm auth={auth} householdId={householdId} />
+        )}
       </div>
     )
   }
@@ -98,7 +291,7 @@ function LoginCard({ user, loading, auth }) {
     }
   }
 
-  const handleVerify = async () => {
+  const handleVerifyOtp = async () => {
     setError('')
     const fullPhone = phone.startsWith('+') ? phone : '+86' + phone
     const { data, error: err } = await auth.verifyOtp(fullPhone, otp)
@@ -106,15 +299,71 @@ function LoginCard({ user, loading, auth }) {
       setError(err.message)
     } else if (data?.user) {
       showToast('✅ 登录成功')
-      setStep('phone')
+      setStep('input')
       setOtp('')
+    }
+  }
+
+  const handleEmailSignUp = async () => {
+    setError('')
+    setEmailLoading(true)
+    const { error: err } = await auth.signUpWithEmail(email, password)
+    setEmailLoading(false)
+    if (err) {
+      setError(err.message)
+    } else {
+      setStep('emailSent')
+    }
+  }
+
+  const handleEmailSignIn = async () => {
+    setError('')
+    setEmailLoading(true)
+    const { error: err } = await auth.signInWithEmail(email, password)
+    setEmailLoading(false)
+    if (err) {
+      if (err.message.includes('Email not confirmed') || err.message.includes('not confirmed')) {
+        setStep('unconfirmed')
+      } else {
+        setError(err.message)
+      }
+    } else {
+      showToast('登录成功')
+    }
+  }
+
+  const handleResendVerification = async () => {
+    setError('')
+    setEmailLoading(true)
+    const { error: err } = await auth.resendVerification(email)
+    setEmailLoading(false)
+    if (err) {
+      setError(err.message)
+    } else {
+      showToast('验证邮件已重新发送')
     }
   }
 
   return (
     <div className={styles.card}>
       <div className={styles.cardTitle}>👤 账户</div>
-      {step === 'phone' ? (
+
+      <div className={styles.loginTabs}>
+        <button
+          className={`${styles.loginTab} ${loginMethod === 'phone' ? styles.loginTabActive : ''}`}
+          onClick={() => { setLoginMethod('phone'); setStep('input'); setError('') }}
+        >
+          手机登录
+        </button>
+        <button
+          className={`${styles.loginTab} ${loginMethod === 'email' ? styles.loginTabActive : ''}`}
+          onClick={() => { setLoginMethod('email'); setStep('input'); setError('') }}
+        >
+          邮箱登录
+        </button>
+      </div>
+
+      {loginMethod === 'phone' && step === 'input' && (
         <div className={styles.loginForm}>
           <div className={styles.phoneRow}>
             <span className={styles.phonePrefix}>+86</span>
@@ -135,7 +384,9 @@ function LoginCard({ user, loading, auth }) {
             {auth.otpSending ? '发送中...' : auth.cooldown > 0 ? `${auth.cooldown}s 后重发` : '获取验证码'}
           </button>
         </div>
-      ) : (
+      )}
+
+      {loginMethod === 'phone' && step === 'otp' && (
         <div className={styles.loginForm}>
           <input
             className={styles.otpInput}
@@ -146,13 +397,13 @@ function LoginCard({ user, loading, auth }) {
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
           />
           <div className={styles.otpActions}>
-            <button className={styles.btnBack} onClick={() => { setStep('phone'); setOtp(''); setError('') }}>
+            <button className={styles.btnBack} onClick={() => { setStep('input'); setOtp(''); setError('') }}>
               返回
             </button>
             <button
               className={styles.btnLogin}
               disabled={otp.length < 6 || auth.otpVerifying}
-              onClick={handleVerify}
+              onClick={handleVerifyOtp}
             >
               {auth.otpVerifying ? '验证中...' : '登录'}
             </button>
@@ -166,6 +417,76 @@ function LoginCard({ user, loading, auth }) {
           </button>
         </div>
       )}
+
+      {loginMethod === 'email' && step === 'input' && (
+        <div className={styles.loginForm}>
+          <input
+            className={styles.emailInput}
+            type="email"
+            placeholder="邮箱地址"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            className={styles.emailInput}
+            type="password"
+            placeholder="密码（至少6位）"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <div className={styles.loginActions}>
+            <button
+              className={styles.btnSecondary}
+              disabled={!email || password.length < 6 || emailLoading}
+              onClick={handleEmailSignUp}
+            >
+              注册
+            </button>
+            <button
+              className={styles.btnLogin}
+              disabled={!email || !password || emailLoading}
+              onClick={handleEmailSignIn}
+            >
+              {emailLoading ? '处理中...' : '登录'}
+            </button>
+          </div>
+          <div className={styles.loginHint}>注册后需验证邮箱</div>
+        </div>
+      )}
+
+      {loginMethod === 'email' && step === 'emailSent' && (
+        <div className={styles.loginForm}>
+          <div className={styles.loginSuccess}>
+            验证邮件已发送，请查收 {email}
+          </div>
+          <button
+            className={styles.btnLogin}
+            onClick={() => setStep('input')}
+          >
+            返回登录
+          </button>
+        </div>
+      )}
+
+      {loginMethod === 'email' && step === 'unconfirmed' && (
+        <div className={styles.loginForm}>
+          <div className={styles.loginError}>请先验证邮箱，查看收件箱中的确认链接</div>
+          <button
+            className={styles.btnLogin}
+            disabled={emailLoading}
+            onClick={handleResendVerification}
+          >
+            {emailLoading ? '发送中...' : '重新发送验证邮件'}
+          </button>
+          <button
+            className={styles.btnBack}
+            onClick={() => setStep('input')}
+          >
+            返回
+          </button>
+        </div>
+      )}
+
       {error && <div className={styles.loginError}>{error}</div>}
     </div>
   )
@@ -175,7 +496,7 @@ export default function SettingsPage({
   members, tasks,
   onAddMember, onRemoveMember, onUpdateMemberName, onUpdateMemberEmoji,
   onAddTask, onRemoveTask, onUpdateTask,
-  auth,
+  auth, householdId,
 }) {
   const [emojiPickerFor, setEmojiPickerFor] = useState(null)
   const [memberEmojiPickerFor, setMemberEmojiPickerFor] = useState(null)
@@ -191,6 +512,7 @@ export default function SettingsPage({
           user={auth.user}
           loading={auth.loading}
           auth={auth}
+          householdId={householdId}
         />
       )}
 
