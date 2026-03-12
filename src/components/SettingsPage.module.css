@@ -469,6 +469,13 @@
   padding: 8px;
 }
 
+.bindStatus {
+  font-size: 13px;
+  color: var(--green);
+  text-align: center;
+  padding: 8px 0 0;
+}
+
 /* Binding section */
 .boundList {
   display: flex;

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { getBoundAccounts } from '../lib/sync'
 import { TASK_EMOJIS, MEMBER_EMOJIS } from '../utils/constants'
 import { useToast } from './Toast'
 import styles from './SettingsPage.module.css'
@@ -59,7 +60,7 @@ function TaskRow({ task, onRemove, onUpdate, pickerOpen, onTogglePicker }) {
   )
 }
 
-function BindEmailForm({ auth, householdId }) {
+function BindEmailForm({ auth, householdId, onBindSuccess }) {
   const [showForm, setShowForm] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -80,6 +81,7 @@ function BindEmailForm({ auth, householdId }) {
     } else if (result.success) {
       setSuccess(true)
       showToast('邮箱绑定成功')
+      onBindSuccess?.()
     } else if (result.error) {
       setError(result.error.message)
     }
@@ -132,7 +134,7 @@ function BindEmailForm({ auth, householdId }) {
   )
 }
 
-function BindPhoneForm({ auth, householdId }) {
+function BindPhoneForm({ auth, householdId, onBindSuccess }) {
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [step, setStep] = useState('idle') // idle | phone | otp
@@ -163,6 +165,7 @@ function BindPhoneForm({ auth, householdId }) {
     } else if (result.success) {
       showToast('手机号绑定成功')
       setStep('idle')
+      onBindSuccess?.()
     } else if (result.error) {
       setError(result.error.message)
     }
@@ -240,10 +243,23 @@ function LoginCard({ user, loading, auth, householdId }) {
   const [otp, setOtp] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [step, setStep] = useState('input') // input | otp | emailSent | unconfirmed
+  const [step, setStep] = useState('input')
   const [error, setError] = useState('')
   const [emailLoading, setEmailLoading] = useState(false)
+  const [boundMethods, setBoundMethods] = useState(null) // null = loading, [] = none
   const showToast = useToast()
+
+  const refreshBoundAccounts = useCallback(async () => {
+    if (!householdId) return
+    const accounts = await getBoundAccounts(householdId)
+    setBoundMethods(accounts.map(a => a.auth_method))
+  }, [householdId])
+
+  useEffect(() => {
+    if (user && householdId) {
+      refreshBoundAccounts()
+    }
+  }, [user, householdId, refreshBoundAccounts])
 
   if (loading) return null
 
@@ -253,15 +269,15 @@ function LoginCard({ user, loading, auth, householdId }) {
     const masked = phoneNum.length > 4
       ? phoneNum.slice(0, phoneNum.length - 8) + '****' + phoneNum.slice(-4)
       : phoneNum
-    const isPhoneUser = !!phoneNum
-    const isEmailUser = !!userEmail
+    const hasPhoneBound = boundMethods?.includes('phone')
+    const hasEmailBound = boundMethods?.includes('email')
 
     return (
       <div className={styles.card}>
         <div className={styles.cardTitle}>👤 账户</div>
         <div className={styles.loggedInRow}>
           <span className={styles.phoneDisplay}>
-            {isPhoneUser ? `📱 ${masked}` : `📧 ${userEmail}`}
+            {phoneNum ? `📱 ${masked}` : `📧 ${userEmail}`}
           </span>
           <button className={styles.btnLogout} onClick={async () => {
             await auth.signOut()
@@ -269,12 +285,15 @@ function LoginCard({ user, loading, auth, householdId }) {
           }}>退出</button>
         </div>
 
-        {/* Binding section */}
-        {isPhoneUser && !isEmailUser && (
-          <BindEmailForm auth={auth} householdId={householdId} />
+        {/* Binding section — check household_users, not user object */}
+        {hasPhoneBound && !hasEmailBound && (
+          <BindEmailForm auth={auth} householdId={householdId} onBindSuccess={refreshBoundAccounts} />
         )}
-        {isEmailUser && !isPhoneUser && (
-          <BindPhoneForm auth={auth} householdId={householdId} />
+        {hasEmailBound && !hasPhoneBound && (
+          <BindPhoneForm auth={auth} householdId={householdId} onBindSuccess={refreshBoundAccounts} />
+        )}
+        {hasPhoneBound && hasEmailBound && (
+          <div className={styles.bindStatus}>📱 手机 + 📧 邮箱 已绑定</div>
         )}
       </div>
     )
